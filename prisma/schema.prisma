@@ -1,0 +1,1073 @@
+// ENKORE — Prisma schema
+// Rebuilt from the Base44 entity definitions in
+// `enkore-music-africa code v3/base44/entities/*.jsonc`.
+//
+// Notes on translation from Base44:
+// - Base44's per-entity `rls` blocks (row-level authorization) are NOT automatically
+//   enforced by Postgres/Prisma. They are re-implemented as Postgres Row-Level
+//   Security policies in `prisma/rls.sql` (run after `prisma migrate`), keyed off
+//   a `app.current_user_id` / `app.current_user_role` session variable set per
+//   request from the Clerk session — see `src/lib/db.ts`.
+// - Loose string references (e.g. `musician_id: string`) become real foreign keys
+//   with `onDelete` semantics chosen deliberately: cascade for content that has no
+//   meaning without its parent (Track, Event, Merchandise...), restrict for
+//   financial/audit records (Purchase, Payout, SubscriptionPayment...) so a
+//   musician can never be deleted out from under a paid transaction.
+// - Entities that represent a real platform identity (Musician, Fan, Affiliate)
+//   gain an optional `userId` link to `User` so authorization can be done by
+//   verified user ID instead of by matching email strings, which was the
+//   Base44 pattern (`data.email == user.email`) and is weaker.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Connection URLs live in prisma.config.ts (Prisma 7+) rather than here.
+// Migrate/CLI operations use DIRECT_URL; the runtime PrismaClient in
+// src/lib/db.ts connects through the Neon driver adapter using DATABASE_URL
+// (the pooled connection string) instead of a `url` on this block.
+datasource db {
+  provider = "postgresql"
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Identity
+// ─────────────────────────────────────────────────────────────────────────
+
+enum UserRole {
+  ADMIN
+  MODERATOR
+  USER
+}
+
+/// Application-level profile row, synced from Clerk on sign-up/sign-in.
+/// Clerk owns credentials/sessions; this table owns app authorization state.
+model User {
+  id        String   @id @default(cuid())
+  clerkId   String   @unique
+  email     String   @unique
+  fullName  String?
+  role      UserRole @default(USER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  musician  Musician?
+  fan       Fan?
+  affiliate Affiliate?
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Musicians & catalogue
+// ─────────────────────────────────────────────────────────────────────────
+
+enum MusicianCountry {
+  SOUTH_AFRICA
+  NIGERIA
+  KENYA
+  GHANA
+  UGANDA
+  TANZANIA
+  RWANDA
+  ZAMBIA
+  ZIMBABWE
+  BOTSWANA
+  NAMIBIA
+  MOZAMBIQUE
+  CAMEROON
+  COTE_DIVOIRE
+  SENEGAL
+  MALAWI
+  ESWATINI
+  LESOTHO
+  OTHER
+}
+
+enum OnboardingStep {
+  DOCS_PENDING
+  DOCS_SUBMITTED
+  LAUNCHED
+}
+
+enum RequirementsStatus {
+  NONE
+  PENDING_REVIEW
+  APPROVED
+  CHANGES_REQUESTED
+}
+
+enum SubscriptionTier {
+  SOUNDCHECK
+  MAINSTAGE
+  HEADLINER
+}
+
+model Musician {
+  id        String  @id @default(cuid())
+  userId    String? @unique
+  user      User?   @relation(fields: [userId], references: [id])
+
+  musicianName    String
+  email           String  @unique
+  bio             String?
+  profileImage    String?
+  storefrontUrl   String? @unique
+  feePlanId       String?
+  feePlan         FeePlan? @relation(fields: [feePlanId], references: [id])
+
+  payoutPercentage Float?  @default(10) // deprecated, kept for data migration
+  payoutFrequency  PayoutFrequency? // deprecated, use feePlan
+  totalRevenue     Decimal @default(0) @db.Decimal(12, 2)
+  tracksUploaded   Int     @default(0)
+
+  location String?
+  country  MusicianCountry?
+
+  socialLinks    Json? // { instagram, twitter, facebook }
+  streamingLinks Json? // { spotify, apple_music, youtube_music, deezer, tidal }
+  videoLinks     Json? // { youtube, vimeo, tiktok }
+
+  lastLoginAt DateTime?
+
+  onboardingStep OnboardingStep @default(DOCS_PENDING)
+  onboardingDocs Json? // { id_document_url, bank_confirmation_url, press_photo_url, ... }
+
+  requirementsStatus      RequirementsStatus @default(NONE)
+  requirementsNotes       String?
+  requirementsSubmittedAt DateTime?
+
+  isLive        Boolean           @default(false)
+  selectedPlan  SubscriptionTier?
+  referralCode  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tracks            Track[]
+  events            Event[]
+  merchandise       Merchandise[]
+  merchandiseOrders MerchandiseOrder[]
+  tourCampaigns     TourCampaign[]
+  tourContributions TourContribution[]
+  bookingEnquiries  BookingEnquiry[]
+  availabilitySlots AvailabilitySlot[]
+  goals             Goal[]
+  purchases         Purchase[]
+  ticketPurchases   TicketPurchase[]
+  payouts           Payout[]
+  payoutInfo        MusicianPayoutInfo?
+  subscription      MusicianSubscription[]
+  subscriptionPayments SubscriptionPayment[]
+  fanWallPosts      FanWallPost[]
+  messages          Message[]
+  follows           Follow[]
+  attendances       Attendance[]
+  fanSubscriptions  FanSubscription[]
+
+  @@index([storefrontUrl])
+}
+
+model Track {
+  id          String  @id @default(cuid())
+  musicianId  String
+  musician    Musician @relation(fields: [musicianId], references: [id], onDelete: Cascade)
+
+  title       String
+  slug        String?
+  description String?
+  coverArt    String?
+  audioFileUrl String
+  previewUrl  String?
+
+  basePrice       Decimal? @db.Decimal(10, 2)
+  payWhatYouWant  Boolean  @default(true)
+  minimumPrice    Decimal  @default(0) @db.Decimal(10, 2)
+
+  downloadsCount    Int     @default(0)
+  revenueGenerated  Decimal @default(0) @db.Decimal(12, 2)
+
+  releaseDate DateTime? @db.Date
+  genre       String?
+  duration    String?
+  albumName   String?
+  trackNumber Int?
+
+  featuredArtists String[]
+  lyrics          String?
+  songwriters     String[]
+  producers       String[]
+  bpm             Int?
+  key             String?
+  mood            String?
+  isrc            String?
+
+  metadataConfirmed       Boolean   @default(false)
+  metadataConfirmationAt  DateTime?
+  metadataNotes           String?
+  ownershipVerified       Boolean   @default(false)
+  collaboratorsConfirmed  Boolean   @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  purchases Purchase[]
+
+  @@index([musicianId])
+  @@unique([musicianId, slug])
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Fans & engagement
+// ─────────────────────────────────────────────────────────────────────────
+
+enum ChristianGenre {
+  GOSPEL
+  WORSHIP_AND_PRAISE
+  CHRISTIAN_HIP_HOP
+  CONTEMPORARY_CHRISTIAN
+  CHRISTIAN_RNB
+  CHRISTIAN_ROCK
+  HYMNS_AND_TRADITIONAL
+  CHRISTIAN_AFROBEATS
+  INSPIRATIONAL
+  OTHER
+}
+
+enum CommunicationPreference {
+  WEEKLY
+  BI_WEEKLY
+  MONTHLY
+  NEVER
+}
+
+enum BadgeLevel {
+  BRONZE
+  SILVER
+  GOLD
+  PLATINUM
+}
+
+model Fan {
+  id     String  @id @default(cuid())
+  userId String? @unique
+  user   User?   @relation(fields: [userId], references: [id])
+
+  fullName String?
+  email    String  @unique
+  location String?
+  socialLink String?
+
+  christianGenre ChristianGenre?
+
+  totalSpent     Decimal @default(0) @db.Decimal(12, 2)
+  purchasesCount Int     @default(0)
+
+  communicationPreference CommunicationPreference @default(MONTHLY)
+  isTopFan                Boolean                 @default(false)
+  badgeLevel              BadgeLevel?
+  description             String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  purchases         Purchase[]
+  ticketPurchases   TicketPurchase[]
+  merchandiseOrders MerchandiseOrder[]
+  tourContributions TourContribution[]
+  messages          Message[]
+  follows           Follow[]
+  attendances       Attendance[]
+  fanSubscriptions  FanSubscription[]
+}
+
+enum FollowSource {
+  LIVE_EVENT_QR
+  WEBSITE
+  SEARCH
+  DIRECT
+}
+
+model Follow {
+  id         String   @id @default(cuid())
+  fanId      String
+  fan        Fan      @relation(fields: [fanId], references: [id], onDelete: Cascade)
+  musicianId String
+  musician   Musician @relation(fields: [musicianId], references: [id], onDelete: Cascade)
+
+  fanEmail String?
+  fanName  String?
+  source   FollowSource @default(DIRECT)
+  location String?
+  description String?
+
+  createdAt DateTime @default(now())
+
+  @@unique([fanId, musicianId])
+}
+
+model FanWallPost {
+  id         String   @id @default(cuid())
+  musicianId String
+  musician   Musician @relation(fields: [musicianId], references: [id], onDelete: Cascade)
+
+  fanName   String
+  fanEmail  String?
+  message   String
+  isVisible Boolean @default(true)
+  description String?
+
+  createdAt DateTime @default(now())
+
+  @@index([musicianId])
+}
+
+enum SenderType {
+  MUSICIAN
+  FAN
+}
+
+model Message {
+  id            String   @id @default(cuid())
+  musicianId    String
+  musician      Musician @relation(fields: [musicianId], references: [id], onDelete: Cascade)
+  fanId         String?
+  fan           Fan?     @relation(fields: [fanId], references: [id])
+
+  subject       String
+  messageBody   String
+  senderType    SenderType
+  isRead        Boolean @default(false)
+  emailSent     Boolean @default(false)
+  fanEmail      String?
+  fanName       String?
+  musicianEmail String?
+  description   String?
+
+  createdAt DateTime @default(now())
+
+  @@index([musicianId])
+  @@index([fanId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Events, bookings, tours
+// ─────────────────────────────────────────────────────────────────────────
+
+enum EventStatus {
+  UPCOMING
+  SOLD_OUT
+  CANCELLED
+  COMPLETED
+}
+
+model Event {
+  id         String   @id @default(cuid())
+  musicianId String
+  musician   Musician @relation(fields: [musicianId], references: [id], onDelete: Cascade)
+
+  title           String
+  description     String?
+  venue           String
+  eventDate       DateTime
+  coverImage      String?
+  ticketPrice     Decimal @db.Decimal(10, 2)
+  totalTickets    Int
+  ticketsSold     Int     @default(0)
+  status          EventStatus @default(UPCOMING)
+  revenueGenerated Decimal @default(0) @db.Decimal(12, 2)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  ticketPurchases TicketPurchase[]
+  attendances     Attendance[]
+
+  @@index([musicianId])
+}
+
+enum TicketStatus {
+  CONFIRMED
+  PENDING
+  CANCELLED
+}
+
+model TicketPurchase {
+  id         String @id @default(cuid())
+  eventId    String
+  event      Event  @relation(fields: [eventId], references: [id], onDelete: Restrict)
+  fanId      String
+  fan        Fan    @relation(fields: [fanId], references: [id], onDelete: Restrict)
+  musicianId String
+  musician   Musician @relation(fields: [musicianId], references: [id], onDelete: Restrict)
+
+  quantity    Int
+  totalAmount Decimal @db.Decimal(12, 2)
+  fanName     String?
+  fanEmail    String?
+  status      TicketStatus @default(CONFIRMED)
+  ticketCode  String? @unique
+  description String?
+
+  createdAt DateTime @default(now())
+
+  @@index([eventId])
+  @@index([musicianId])
+}
+
+enum AttendanceSource {
+  QR_CODE
+  MANUAL
+}
+
+model Attendance {
+  id         String   @id @default(cuid())
+  eventId    String
+  event      Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  musicianId String
+  musician   Musician @relation(fields: [musicianId], references: [id], onDelete: Cascade)
+  fanId      String?
+  fan        Fan?     @relation(fields: [fanId], references: [id])
+
+  fanName   String
+  fanEmail  String
+  checkInTime DateTime?
+  locationData Json? // { neighborhood, city, province, country }
+  source    AttendanceSource @default(QR_CODE)
+  discountCodeIssued String?
+  description String?
+
+  createdAt DateTime @default(now())
+
+  @@index([eventId])
+}
+
+enum BookingEventType {
+  WEDDING
+  CORPORATE
+  CHURCH_SERVICE
+  CONCERT
+  PRIVATE_PARTY
+  FESTIVAL
+  OTHER
+}
+
+enum BookingStatus {
+  PENDING
+  CONTACTED
+  CONFIRMED
+  DECLINED
+}
+
+model BookingEnquiry {
+  id            String   @id @default(cuid())
+  musicianId    String
+  musician      Musician @relation(fields: [musicianId], references: [id], onDelete: Cascade)
+  musicianEmail String?
+  slotId        String?
+  slot          AvailabilitySlot? @relation(fields: [slotId], references: [id])
+
+  eventName     String
+  eventDate     DateTime @db.Date
+  eventType     BookingEventType?
+  eventTime     String?
+  venue         String?
+  budget        String?
+  organizerName  String
+  organizerEmail String
+  organizerPhone String?
+  message        String?
+  status         BookingStatus @default(PENDING)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([musicianId])
+}
+
+enum SlotStatus {
+  AVAILABLE
+  BOOKED
+  BLOCKED
+}
+
+model AvailabilitySlot {
+  id            String   @id @default(cuid())
+  musicianId    String
+  musician      Musician @relation(fields: [musicianId], references: [id], onDelete: Cascade)
+  musicianEmail String?
+
+  startTime DateTime
+  endTime   DateTime
+  status    SlotStatus @default(AVAILABLE)
+  title     String?
+
+  bookingEnquiries BookingEnquiry[]
+
+  @@index([musicianId])
+}
+
+enum TourCampaignStatus {
+  ACTIVE
+  FUNDED
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+model TourCampaign {
+  id         String   @id @default(cuid())
+  musicianId String
+  musician   Musician @relation(fields: [musicianId], references: [id], onDelete: Cascade)
+
+  title       String
+  description String?
+  coverImage  String?
+  city        String
+  venue       String?
+  proposedDate DateTime? @db.Date
+  fundingGoal  Decimal @db.Decimal(12, 2)
+  currentFunding Decimal @default(0) @db.Decimal(12, 2)
+  contributorCount Int @default(0)
+  status        TourCampaignStatus @default(ACTIVE)
+  escrowAccountId String?
+  deadline        DateTime @db.Date
+  ticketPrice     Decimal? @db.Decimal(10, 2)
+  artistConfirmed Boolean @default(false)
+  venueConfirmed  Boolean @default(false)
+  conditionsMet   Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  contributions TourContribution[]
+
+  @@index([musicianId])
+}
+
+enum ContributionStatus {
+  PENDING
+  HELD_IN_ESCROW
+  RELEASED
+  REFUNDED
+}
+
+model TourContribution {
+  id         String @id @default(cuid())
+  campaignId String
+  campaign   TourCampaign @relation(fields: [campaignId], references: [id], onDelete: Restrict)
+  fanId      String?
+  fan        Fan?   @relation(fields: [fanId], references: [id])
+  musicianId String
+  musician   Musician @relation(fields: [musicianId], references: [id], onDelete: Restrict)
+
+  amount   Decimal @db.Decimal(12, 2)
+  fanName  String?
+  fanEmail String?
+  status   ContributionStatus @default(PENDING)
+  escrowTransactionId String?
+  refundProcessed Boolean @default(false)
+  description String?
+
+  createdAt DateTime @default(now())
+
+  @@index([campaignId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Commerce: purchases, merch, subscriptions
+// ─────────────────────────────────────────────────────────────────────────
+
+enum Currency {
+  ZAR
+  USD
+  NGN
+  GHS
+  KES
+  XOF
+}
+
+enum PaymentMethod {
+  PAYFAST
+  CAPITEC_PAY
+  YOCO
+  CARD
+  KYSHI
+}
+
+enum PurchaseStatus {
+  COMPLETED
+  PENDING
+  FAILED
+}
+
+model Purchase {
+  id         String @id @default(cuid())
+  fanId      String?
+  fan        Fan?   @relation(fields: [fanId], references: [id])
+  trackId    String
+  track      Track  @relation(fields: [trackId], references: [id], onDelete: Restrict)
+  musicianId String
+  musician   Musician @relation(fields: [musicianId], references: [id], onDelete: Restrict)
+
+  amountPaid       Decimal @db.Decimal(10, 2)
+  currency         Currency @default(ZAR)
+  platformFee      Decimal? @db.Decimal(10, 2)
+  musicianEarnings Decimal? @db.Decimal(10, 2)
+  paymentMethod    PaymentMethod @default(PAYFAST)
+  paymentReference String? @unique
+  status           PurchaseStatus @default(COMPLETED)
+  fanEmail         String?
+  fanName          String?
+  description      String?
+
+  createdAt DateTime @default(now())
+
+  @@index([musicianId])
+  @@index([trackId])
+}
+
+enum MerchType {
+  T_SHIRT
+  HOODIE
+  CAP
+  POSTER
+  VINYL
+}
+
+enum MerchStatus {
+  ACTIVE
+  INACTIVE
+}
+
+model Merchandise {
+  id         String   @id @default(cuid())
+  musicianId String
+  musician   Musician @relation(fields: [musicianId], references: [id], onDelete: Cascade)
+
+  name        String
+  description String?
+  type        MerchType
+  priceZar    Decimal? @db.Decimal(10, 2)
+  priceNgn    Decimal? @db.Decimal(10, 2)
+  priceUsd    Decimal? @db.Decimal(10, 2)
+  imageUrl    String?
+  sizes       String[]
+  stockQuantity Int @default(0)
+  isOnDemand    Boolean @default(true)
+  unitsSold     Int @default(0)
+  revenueGenerated Decimal @default(0) @db.Decimal(12, 2)
+  status        MerchStatus @default(ACTIVE)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orders MerchandiseOrder[]
+
+  @@index([musicianId])
+}
+
+enum OrderStatus {
+  PENDING
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+model MerchandiseOrder {
+  id            String @id @default(cuid())
+  merchandiseId String
+  merchandise   Merchandise @relation(fields: [merchandiseId], references: [id], onDelete: Restrict)
+  fanId         String
+  fan           Fan @relation(fields: [fanId], references: [id], onDelete: Restrict)
+  musicianId    String
+  musician      Musician @relation(fields: [musicianId], references: [id], onDelete: Restrict)
+
+  quantity   Int @default(1)
+  size       String?
+  totalAmount Decimal @db.Decimal(10, 2)
+  fanName    String?
+  fanEmail   String?
+  shippingAddress Json? // { street, city, province, postal_code, country }
+  status     OrderStatus @default(PENDING)
+  trackingNumber String?
+  description String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([musicianId])
+}
+
+enum SubStatus {
+  ACTIVE
+  CANCELLED
+  EXPIRED
+  PENDING
+}
+
+model FanSubscription {
+  id         String @id @default(cuid())
+  fanId      String?
+  fan        Fan?   @relation(fields: [fanId], references: [id])
+  musicianId String
+  musician   Musician @relation(fields: [musicianId], references: [id], onDelete: Restrict)
+
+  fanName  String?
+  fanEmail String?
+  amount   Decimal @db.Decimal(10, 2) // minimum 50
+  frequency SubFrequency @default(MONTHLY)
+  status    SubStatus @default(PENDING)
+  startDate DateTime?
+  endDate   DateTime?
+  nextBillingDate DateTime?
+  paymentReference String?
+  lastPaymentDate DateTime?
+  totalPaid Decimal @default(0) @db.Decimal(10, 2)
+  description String?
+
+  createdAt DateTime @default(now())
+
+  @@index([musicianId])
+}
+
+enum SubFrequency {
+  WEEKLY
+  MONTHLY
+}
+
+model MusicianSubscription {
+  id         String @id @default(cuid())
+  musicianId String
+  musician   Musician @relation(fields: [musicianId], references: [id], onDelete: Restrict)
+
+  status           SubStatus @default(PENDING)
+  subscriptionType String    @default("monthly")
+  amount           Decimal   @default(200) @db.Decimal(10, 2)
+  currency         Currency  @default(ZAR)
+  startDate        DateTime?
+  endDate          DateTime?
+  nextBillingDate  DateTime?
+  paymentReference String?
+  lastPaymentDate  DateTime?
+  description       String?
+
+  createdAt DateTime @default(now())
+
+  payments SubscriptionPayment[]
+
+  @@index([musicianId])
+}
+
+enum PaymentGateway {
+  PAYFAST
+  KYSHI
+  PAYPAL
+  YOCO
+  MANUAL
+}
+
+enum InstallmentStatus {
+  PENDING
+  PAID
+  FAILED
+  CANCELLED
+}
+
+/// One record per subscription installment — ENKORE does not auto-debit;
+/// each installment is invoiced and paid individually so a year of Headliner
+/// payments is reconcilable. `create`/`update` are server-only (no client RLS
+/// allowed create/update in Base44) — enforce the same at the API layer here.
+model SubscriptionPayment {
+  id             String @id @default(cuid())
+  subscriptionId String
+  subscription   MusicianSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Restrict)
+  musicianId     String
+  musician       Musician @relation(fields: [musicianId], references: [id], onDelete: Restrict)
+  musicianEmail  String?
+
+  amount   Decimal  @db.Decimal(10, 2)
+  currency Currency
+  tier     SubscriptionTier?
+  gateway  PaymentGateway?
+  dueDate  DateTime?
+  paidAt   DateTime?
+  periodStart DateTime?
+  periodEnd   DateTime?
+  paymentReference String? @unique
+  reminderSentAt   DateTime?
+  status   InstallmentStatus @default(PENDING)
+  notes    String?
+
+  createdAt DateTime @default(now())
+
+  @@index([subscriptionId])
+  @@index([musicianId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Payouts & fee plans
+// ─────────────────────────────────────────────────────────────────────────
+
+enum PayoutFrequency {
+  WEEKLY
+  BI_WEEKLY
+  MONTHLY
+}
+
+enum PayoutStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+model Payout {
+  id         String @id @default(cuid())
+  musicianId String
+  musician   Musician @relation(fields: [musicianId], references: [id], onDelete: Restrict)
+
+  amount    Decimal @db.Decimal(12, 2)
+  periodStart DateTime @db.Date
+  periodEnd   DateTime @db.Date
+  status    PayoutStatus @default(PENDING)
+  paymentReference String?
+  grossRevenue Decimal? @db.Decimal(12, 2)
+  platformFee  Decimal? @db.Decimal(12, 2)
+  netAmount    Decimal? @db.Decimal(12, 2)
+  notes        String?
+
+  createdAt DateTime @default(now())
+
+  @@index([musicianId])
+}
+
+model MusicianPayoutInfo {
+  id         String @id @default(cuid())
+  musicianId String @unique
+  musician   Musician @relation(fields: [musicianId], references: [id], onDelete: Cascade)
+
+  bankName      String?
+  accountNumber String? // TODO: encrypt at rest / move to a vaulted secrets store rather than plain column
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model FeePlan {
+  id      String @id @default(cuid())
+  name    String
+  termMonths Int @default(12)
+  monthlyFee Decimal @default(200) @db.Decimal(10, 2)
+  upfrontPaymentMonths Int @default(1)
+  platformCommissionPercentage Float
+  payoutFrequency PayoutFrequency
+  payoutDays Int?
+  isActive Boolean @default(true)
+  description String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  musicians Musician[]
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Affiliates
+// ─────────────────────────────────────────────────────────────────────────
+
+enum AffiliateTier {
+  COMMUNITY
+  MINISTRY
+  AMBASSADOR
+}
+
+enum VerificationStatus {
+  NOT_SUBMITTED
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum AffiliateStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum PayoutMethod {
+  BANK_TRANSFER
+  PAYFAST
+  MOBILE_MONEY
+  CASH
+}
+
+model Affiliate {
+  id     String  @id @default(cuid())
+  userId String? @unique
+  user   User?   @relation(fields: [userId], references: [id])
+
+  email        String @unique
+  name         String
+  referralCode String @unique
+  tier         AffiliateTier @default(COMMUNITY)
+  foundingMember Boolean @default(false)
+  isVerified   Boolean @default(false)
+  verificationStatus VerificationStatus @default(NOT_SUBMITTED)
+  ministryName String?
+  ministryRole String?
+  joinedAt     DateTime?
+
+  clicks       Int @default(0)
+  lastClickIp  String?
+  lastClickAt  DateTime?
+  conversions  Int @default(0)
+
+  pendingEarnings       Decimal @default(0) @db.Decimal(12, 2)
+  totalEarningsPaid     Decimal @default(0) @db.Decimal(12, 2)
+  residualEarnings      Decimal @default(0) @db.Decimal(12, 2)
+  upfrontBonusEarned    Decimal @default(0) @db.Decimal(12, 2)
+  churchMultiplierEarned Decimal @default(0) @db.Decimal(12, 2)
+  commissionPerConversion Decimal @default(200) @db.Decimal(10, 2)
+
+  status       AffiliateStatus @default(ACTIVE)
+  payoutMethod PayoutMethod?
+  bankName     String?
+  accountNumber String? // TODO: encrypt at rest
+
+  notes String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Pre-registration, nominations, misc lead-gen
+// ─────────────────────────────────────────────────────────────────────────
+
+enum PreRegStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model MusicianPreRegistration {
+  id     String @id @default(cuid())
+
+  artistName String
+  email      String
+  bio        String?
+  location   String?
+  phoneNumber String
+  spotifyUrl String?
+  christianGenre ChristianGenre?
+  referralCode String?
+  status     PreRegStatus @default(PENDING)
+  rejectionReason String?
+  notes      String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum NominationStatus {
+  PENDING
+  CONTACTED
+  JOINED
+  DECLINED
+}
+
+model MusicianNomination {
+  id String @id @default(cuid())
+
+  musicianName        String
+  musicianEmail        String?
+  musicianSocialLink   String?
+  fanName              String?
+  fanEmail             String
+  reason               String?
+  status               NominationStatus @default(PENDING)
+  description          String?
+
+  createdAt DateTime @default(now())
+}
+
+model FanRewardSurvey {
+  id String @id @default(cuid())
+
+  fanEmail          String?
+  fanPhone          String?
+  rewardPreferences String[]
+  description       String?
+
+  createdAt DateTime @default(now())
+}
+
+model EarlyAccessSignup {
+  id String @id @default(cuid())
+
+  email       String @unique
+  source      String @default("explore_music")
+  description String?
+
+  createdAt DateTime @default(now())
+}
+
+model GraphicDesigner {
+  id String @id @default(cuid())
+
+  name           String
+  email          String
+  portfolioLink  String
+  bio            String?
+  specialties    String[]
+  priceRange     String
+  profileImage   String?
+  location       String?
+  instagram      String?
+  whatsapp       String?
+  yearsExperience Int?
+  featuredWork   String[]
+  isVerified     Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Musician performance goals
+// ─────────────────────────────────────────────────────────────────────────
+
+enum GoalType {
+  REVENUE
+  FOLLOWERS
+  TRACKS
+  DOWNLOADS
+  CUSTOM
+}
+
+enum GoalStatus {
+  ACTIVE
+  COMPLETED
+  CANCELLED
+  EXPIRED
+}
+
+model Goal {
+  id         String @id @default(cuid())
+  musicianId String
+  musician   Musician @relation(fields: [musicianId], references: [id], onDelete: Cascade)
+
+  goalType    GoalType
+  title       String
+  description String?
+  targetValue Decimal @db.Decimal(12, 2)
+  currentValue Decimal @default(0) @db.Decimal(12, 2)
+  startDate   DateTime? @db.Date
+  endDate     DateTime @db.Date
+  status      GoalStatus @default(ACTIVE)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([musicianId])
+}

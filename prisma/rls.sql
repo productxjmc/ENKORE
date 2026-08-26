@@ -327,6 +327,17 @@ create policy affiliate_write on "Affiliate" for all using (
 -- Public lead-gen / pre-registration forms
 -- Public insert, admin-only read/update/delete (PII protection > form
 -- friction — see file header).
+--
+-- GOTCHA (confirmed against the live database, not theoretical): Prisma's
+-- .create() does an implicit INSERT ... RETURNING, and Postgres RLS applies
+-- the table's SELECT policy to that RETURNING output — so an anonymous
+-- submitter passes the public INSERT check and then gets a
+-- "new row violates row-level security policy" error anyway, from reading
+-- the row back, because SELECT here is admin-only. Every API route that
+-- writes to one of these tables from an anonymous/non-admin context must
+-- use .createMany() (no RETURNING) instead of .create(), or run the write
+-- through withServiceRole if the created row genuinely needs to be
+-- returned to the caller. See src/app/api/first-fruits/route.ts.
 -- ─────────────────────────────────────────────────────────────────────────
 
 alter table "MusicianPreRegistration" enable row level security;

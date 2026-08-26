@@ -18,12 +18,20 @@ export async function withUserContext<T>(
   ctx: AppUserContext,
   fn: (tx: Prisma.TransactionClient) => Promise<T>,
 ): Promise<T> {
-  return prisma.$transaction(async (tx) => {
-    await tx.$executeRaw`SELECT set_config('app.user_id', ${ctx.userId ?? ""}, true)`;
-    await tx.$executeRaw`SELECT set_config('app.user_email', ${ctx.email ?? ""}, true)`;
-    await tx.$executeRaw`SELECT set_config('app.user_role', ${ctx.role ?? ""}, true)`;
-    return fn(tx);
-  });
+  return prisma.$transaction(
+    async (tx) => {
+      await tx.$executeRaw`SELECT set_config('app.user_id', ${ctx.userId ?? ""}, true)`;
+      await tx.$executeRaw`SELECT set_config('app.user_email', ${ctx.email ?? ""}, true)`;
+      await tx.$executeRaw`SELECT set_config('app.user_role', ${ctx.role ?? ""}, true)`;
+      return fn(tx);
+    },
+    // Prisma's 5s default was hit in testing by a real multi-query flow
+    // (approveMusician's slug-collision loop) over Neon's network round
+    // trips — every call through this wrapper pays that latency per
+    // query, not just heavier ones, so the higher timeout applies broadly
+    // rather than special-casing individual callers.
+    { timeout: 15000 },
+  );
 }
 
 /**

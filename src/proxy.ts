@@ -5,11 +5,17 @@ import { GEO_COOKIE, normalizeCountry } from "@/lib/geo";
 // Dashboard/admin routes require a signed-in user; storefronts, checkout,
 // and lead-gen forms stay public by product design (see the RLS notes in
 // prisma/rls.sql — those tables are public-read or public-insert).
+//
+// `(/.*)?` (not `(.*)`) so each pattern matches only the base path and its
+// sub-paths, not any path that merely starts with the same letters — a bare
+// `(.*)` on "/api/musician(.*)" silently matched /api/musician-pre-register
+// too, sending an unrelated public lead-gen form's submissions through a
+// Clerk sign-in redirect. Confirmed the bug by curl, not assumed.
 const isProtectedRoute = createRouteMatcher([
-  "/dashboard(.*)",
-  "/admin(.*)",
-  "/api/musician(.*)",
-  "/api/admin(.*)",
+  "/dashboard(/.*)?",
+  "/admin(/.*)?",
+  "/api/musician(/.*)?",
+  "/api/admin(/.*)?",
 ]);
 
 // Next.js 16 renamed Middleware to Proxy — this file must be named

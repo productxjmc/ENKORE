@@ -1,28 +1,141 @@
-import { Show, SignInButton, SignUpButton, UserButton } from "@clerk/nextjs";
-import Link from "next/link";
+"use client";
 
-// Clerk's "Core 3" removed <SignedIn>/<SignedOut> in favor of the
-// server-only <Show when="signed-in|signed-out"> component — confirmed by
-// reading node_modules/@clerk/nextjs/dist/types directly since this
-// package version is newer than general training data.
+import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { ChevronDown } from "lucide-react";
+import { motion } from "framer-motion";
+import Slide from "@/components/presentation/Slide";
+import AnimatedText from "@/components/presentation/AnimatedText";
+import WaitlistField from "@/components/home/WaitlistField";
+
+// Ported from the Base44 app's src/pages/Home.jsx — the 5-slide scroll-snap
+// narrative and the waitlist are unchanged. Scoped down for a same-day
+// ship: the auto-popup MissionModal and the role-picker SignupModal are
+// deferred (not core to "landing page with a waitlist"), and the two links
+// that pointed at pages this rebuild hasn't reached yet (/demo, /Journey)
+// now scroll within the page instead of dead-linking.
 export default function Home() {
+  const [logoVisible, setLogoVisible] = useState(true);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const handleScroll = () => setLogoVisible(el.scrollTop < 80);
+    el.addEventListener("scroll", handleScroll);
+    return () => el.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  const scrollToNext = () => {
+    scrollRef.current?.querySelectorAll("section")[1]?.scrollIntoView({ behavior: "smooth" });
+  };
+  const scrollToTop = () => {
+    scrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center gap-6 bg-zinc-50 font-sans dark:bg-black">
-      <h1 className="text-2xl font-semibold">ENKORE rebuild — auth smoke test</h1>
-      <Show when="signed-out">
-        <div className="flex gap-4">
-          <SignInButton mode="modal" />
-          <SignUpButton mode="modal" />
+    <div ref={scrollRef} className="fixed inset-0 overflow-y-scroll snap-y snap-mandatory scrollbar-hide z-0">
+      {/* Slide 1 — Hero */}
+      <Slide bg="bg-[#FF3700]" text="text-white" className="relative">
+        <div
+          className={`absolute top-6 left-0 right-0 flex justify-center z-20 transition-opacity duration-500 ${
+            logoVisible ? "opacity-100" : "opacity-0 pointer-events-none"
+          }`}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element -- externally hosted brand asset, not a Next/Image-managed source */}
+          <img
+            src="https://media.base44.com/images/public/691b0c6b868d3cd0bc483403/c6eb417d2_ENKORESYMBOLTEXTWHITEBACKGROUND.png"
+            alt="ENKORE Music Africa"
+            className="h-16 w-16 object-contain"
+          />
         </div>
-      </Show>
-      <Show when="signed-in">
-        <div className="flex items-center gap-4">
-          <UserButton />
-          <Link href="/dashboard" className="underline">
-            Go to dashboard
+        <div className="text-center max-w-md">
+          <AnimatedText text="BUILT FOR CHRISTIAN MUSICIANS" className="font-black uppercase text-4xl leading-[0.95] tracking-tight mb-8" />
+          <AnimatedText text="Amplify, thrive and sustain your music career." className="font-normal text-lg leading-relaxed opacity-90" delay={0.3} />
+          <AnimatedText text="Sell music, merchandise, tickets and get bookings," className="font-normal text-lg leading-relaxed opacity-90" delay={0.5} />
+          <AnimatedText text="all in one place." className="font-normal text-lg leading-relaxed mb-10 opacity-90" delay={0.7} />
+          <div className="flex flex-col gap-3">
+            <Link
+              href="/musician-pre-register"
+              className="w-full bg-white text-[#FF3700] font-black uppercase px-6 py-4 rounded-full text-sm text-center active:scale-[0.97] transition-transform shadow-lg"
+            >
+              Sign Up Free
+            </Link>
+            <button
+              type="button"
+              onClick={scrollToNext}
+              className="w-full bg-transparent border-2 border-white text-white font-bold uppercase px-6 py-4 rounded-full text-sm text-center active:scale-[0.97] transition-transform"
+            >
+              Show me how it works →
+            </button>
+            <WaitlistField />
+          </div>
+        </div>
+        <motion.div className="absolute bottom-6 left-0 right-0 flex justify-center" animate={{ y: [0, 8, 0] }} transition={{ repeat: Infinity, duration: 1.8 }}>
+          <ChevronDown className="w-6 h-6 text-white/60" />
+        </motion.div>
+      </Slide>
+
+      {/* Slide 2 — Scripture */}
+      <Slide bg="bg-black" text="text-white">
+        <div className="text-center max-w-lg">
+          <p className="text-[#FF3700] text-xs font-black uppercase tracking-[0.3em] mb-6">The Great Commission</p>
+          <AnimatedText text='"Go therefore and make disciples of all nations."' className="font-black text-3xl leading-tight mb-4" />
+          <p className="text-gray-500 text-sm">Matthew 28:19</p>
+        </div>
+      </Slide>
+
+      {/* Slide 3 — Mission */}
+      <Slide bg="bg-white" text="text-black">
+        <div className="text-center max-w-lg">
+          <AnimatedText text="Christian music is more than songs." className="font-black text-3xl leading-tight mb-6" />
+          <AnimatedText
+            text="It is a vehicle for the gospel — reaching hearts, building faith, and drawing people closer to God."
+            className="text-lg text-gray-600 leading-relaxed mb-8"
+            delay={0.2}
+          />
+          <AnimatedText text="But calling without sustainability is a ministry cut short." className="font-bold text-xl text-gray-900" delay={0.4} />
+        </div>
+      </Slide>
+
+      {/* Slide 4 — Three Pillars */}
+      <Slide bg="bg-gray-50" text="text-black">
+        <div className="w-full max-w-md space-y-10">
+          <div>
+            <AnimatedText text="Your Music, Your Ministry" className="font-black text-2xl mb-2" />
+            <p className="text-gray-500 text-sm leading-relaxed">Upload tracks and sell directly — no label middleman, no gatekeepers.</p>
+          </div>
+          <div>
+            <AnimatedText text="Supporters Who Become Disciples" className="font-black text-2xl mb-2" delay={0.1} />
+            <p className="text-gray-500 text-sm leading-relaxed">Build real relationships with supporters who believe in your calling.</p>
+          </div>
+          <div>
+            <AnimatedText text="Sustainable for the Long Haul" className="font-black text-2xl mb-2" delay={0.2} />
+            <p className="text-gray-500 text-sm leading-relaxed">Track revenue, manage payouts, and plan events — all in one place.</p>
+          </div>
+        </div>
+      </Slide>
+
+      {/* Slide 5 — CTA */}
+      <Slide bg="bg-[#FF3700]" text="text-white">
+        <div className="text-center max-w-md">
+          <AnimatedText text="Your gift is your calling." className="font-black text-3xl mb-2" />
+          <AnimatedText text="ENKORE makes it your livelihood." className="font-black text-3xl mb-10" delay={0.2} />
+          <Link
+            href="/musician-pre-register"
+            className="inline-block bg-white text-[#FF3700] font-black uppercase px-10 py-4 rounded-full text-lg active:scale-[0.97] transition-transform shadow-lg"
+          >
+            Join the Mission
           </Link>
+          <button
+            type="button"
+            onClick={scrollToTop}
+            className="block mx-auto mt-6 bg-transparent border-2 border-white text-white font-bold uppercase px-10 py-4 rounded-full text-lg text-center active:scale-[0.97] transition-transform"
+          >
+            Back to Top
+          </button>
         </div>
-      </Show>
+      </Slide>
     </div>
   );
 }

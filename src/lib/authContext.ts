@@ -25,12 +25,18 @@ export async function withUserContext<T>(
       await tx.$executeRaw`SELECT set_config('app.user_role', ${ctx.role ?? ""}, true)`;
       return fn(tx);
     },
-    // Prisma's 5s default was hit in testing by a real multi-query flow
-    // (approveMusician's slug-collision loop) over Neon's network round
-    // trips — every call through this wrapper pays that latency per
-    // query, not just heavier ones, so the higher timeout applies broadly
-    // rather than special-casing individual callers.
-    { timeout: 15000 },
+    // Prisma's 5s default `timeout` (max execution time) was hit in
+    // testing by a real multi-query flow (approveMusician's slug-collision
+    // loop). Separately, its 2s default `maxWait` (max time to acquire a
+    // transaction slot before starting — a different clock entirely) was
+    // also hit, on a plain single-query call, once Neon's WebSocket
+    // connection setup had any latency (e.g. after the connection sat
+    // idle) — confirmed via the actual error text ("Unable to start a
+    // transaction in the given time" is the maxWait message, not the
+    // timeout one), not assumed. Every call through this wrapper pays
+    // both costs, so both apply broadly rather than special-casing
+    // individual callers.
+    { timeout: 15000, maxWait: 15000 },
   );
 }
 

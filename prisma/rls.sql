@@ -336,6 +336,13 @@ create policy musicianprereg_insert on "MusicianPreRegistration" for insert with
 create policy musicianprereg_modify on "MusicianPreRegistration" for update using (app.is_admin()) with check (app.is_admin());
 create policy musicianprereg_delete on "MusicianPreRegistration" for delete using (app.is_admin());
 
+alter table "FirstFruitsApplication" enable row level security;
+alter table "FirstFruitsApplication" force row level security;
+create policy firstfruitsapplication_select on "FirstFruitsApplication" for select using (app.is_admin());
+create policy firstfruitsapplication_insert on "FirstFruitsApplication" for insert with check (true);
+create policy firstfruitsapplication_modify on "FirstFruitsApplication" for update using (app.is_admin()) with check (app.is_admin());
+create policy firstfruitsapplication_delete on "FirstFruitsApplication" for delete using (app.is_admin());
+
 alter table "MusicianNomination" enable row level security;
 alter table "MusicianNomination" force row level security;
 create policy musiciannomination_select on "MusicianNomination" for select using (app.is_admin());

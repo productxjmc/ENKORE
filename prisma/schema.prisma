@@ -969,6 +969,40 @@ model MusicianPreRegistration {
   updatedAt DateTime @updatedAt
 }
 
+enum FirstFruitsStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+/// "First Fruits" — the open, uncapped early-application tier for
+/// ENKORE Connect. Distinct from MusicianPreRegistration: no cap, no
+/// scarcity mechanic, and by product design every application is
+/// accepted (status exists for admin bookkeeping and future spam/
+/// not-actually-a-musician screening, not for scarcity gating — see
+/// ENKORE Connect — First Fruits Application Copy).
+model FirstFruitsApplication {
+  id String @id @default(cuid())
+
+  artistName String
+  location   String?
+  email      String // not one of the 3 numbered questions, but required to send the acceptance email
+  songLink   String
+  fanReachAnswer String // Q3: free text, doubles as qualifying signal + message-testing research per the copy doc
+
+  // Optional 4th question (attribution / "how did you hear about this?")
+  // flagged in the copy doc as a probable near-term addition, not yet
+  // live in the form. Nullable now so it doesn't need its own migration
+  // later — every row today will have this null.
+  attributionSource String?
+
+  status     FirstFruitsStatus @default(PENDING)
+  acceptedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 enum NominationStatus {
   PENDING
   CONTACTED

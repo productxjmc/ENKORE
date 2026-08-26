@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 
 /* Roboto is loaded via next/font/google in layout.tsx (see the comment
    there for why) rather than a raw @import here — Tailwind v4 requires

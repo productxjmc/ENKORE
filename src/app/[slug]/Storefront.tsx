@@ -28,9 +28,9 @@ export type PlainTrack = Omit<Track, "basePrice" | "minimumPrice" | "revenueGene
 // Client half of the storefront — needs the currency hook (localStorage/
 // geo-IP) and tab state, so it can't be a server component. Scoped down
 // from src/pages/MusicianStorefront.jsx: Merch/Bookings/Community Wall
-// tabs are honest placeholders (Stages 5, 6, 4) rather than faked, and
-// "Buy Track" surfaces a plain "coming soon" note instead of opening a
-// checkout that has nowhere to send a payment yet (Stage 9).
+// tabs are honest placeholders (Stages 5, 6, 4) rather than faked.
+// "Buy Track" now opens a real Payfast checkout (Stage 9) — see
+// TrackCheckout below.
 export function Storefront({ musician, tracks }: { musician: PlainMusician; tracks: PlainTrack[] }) {
   const { currency } = useCurrency();
   const social = (musician.socialLinks as SocialLinks | null) ?? null;
@@ -192,7 +192,7 @@ export function Storefront({ musician, tracks }: { musician: PlainMusician; trac
 }
 
 function TrackCard({ track, currency }: { track: PlainTrack; currency: ReturnType<typeof useCurrency>["currency"] }) {
-  const [showComingSoon, setShowComingSoon] = useState(false);
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
 
   return (
     <motion.div initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.2 }} transition={{ duration: 0.4 }}>
@@ -229,16 +229,120 @@ function TrackCard({ track, currency }: { track: PlainTrack; currency: ReturnTyp
               </div>
             )}
           </div>
-          {showComingSoon ? (
-            <p className="w-full mt-4 text-center text-sm text-orange-600 font-medium">🚧 Purchases coming soon</p>
+          {checkoutOpen ? (
+            <TrackCheckout track={track} onCancel={() => setCheckoutOpen(false)} />
           ) : (
-            <Button onClick={() => setShowComingSoon(true)} className="w-full mt-4 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white">
+            <Button onClick={() => setCheckoutOpen(true)} className="w-full mt-4 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white">
               Buy Track
             </Button>
           )}
         </CardContent>
       </Card>
     </motion.div>
+  );
+}
+
+// Payfast processes ZAR only — the multi-currency figures elsewhere on
+// this page are display conversions, and none of that conversion belongs
+// anywhere near what's actually submitted for payment. This form always
+// works in the track's real ZAR-denominated minimumPrice/basePrice, never
+// the fan's currently-selected display currency, so there's no place a
+// conversion bug could turn into someone being charged the wrong amount.
+function TrackCheckout({ track, onCancel }: { track: PlainTrack; onCancel: () => void }) {
+  const [fanName, setFanName] = useState("");
+  const [fanEmail, setFanEmail] = useState("");
+  const [amount, setAmount] = useState(track.payWhatYouWant ? track.minimumPrice : (track.basePrice ?? track.minimumPrice));
+  const [status, setStatus] = useState<"idle" | "submitting" | "error">("idle");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setStatus("submitting");
+    setErrorMessage(null);
+
+    try {
+      const res = await fetch("/api/payments/payfast/initialize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ trackId: track.id, musicianId: track.musicianId, fanEmail, fanName: fanName || undefined, amount }),
+      });
+      const body = await res.json();
+      if (!res.ok) {
+        throw new Error(body?.error || "Something went wrong. Please try again.");
+      }
+
+      // Payfast checkout is a real browser form POST, not a fetch redirect
+      // — build one, submit it, and let the navigation happen.
+      const form = document.createElement("form");
+      form.method = "POST";
+      form.action = body.paymentUrl;
+      for (const [key, value] of Object.entries(body.paymentData as Record<string, string>)) {
+        const input = document.createElement("input");
+        input.type = "hidden";
+        input.name = key;
+        input.value = value;
+        form.appendChild(input);
+      }
+      document.body.appendChild(form);
+      form.submit();
+    } catch (err) {
+      setStatus("error");
+      setErrorMessage(err instanceof Error ? err.message : "Please try again.");
+    }
+  };
+
+  const fieldClass =
+    "w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500";
+
+  return (
+    <form onSubmit={handleSubmit} className="mt-4 flex flex-col gap-2.5">
+      <input
+        type="email"
+        required
+        placeholder="Your email"
+        value={fanEmail}
+        onChange={(e) => setFanEmail(e.target.value)}
+        disabled={status === "submitting"}
+        className={fieldClass}
+      />
+      <input
+        type="text"
+        placeholder="Your name (optional)"
+        value={fanName}
+        onChange={(e) => setFanName(e.target.value)}
+        disabled={status === "submitting"}
+        className={fieldClass}
+      />
+      {track.payWhatYouWant && (
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-gray-500">R</span>
+          <input
+            type="number"
+            required
+            min={track.minimumPrice}
+            step="0.01"
+            value={amount}
+            onChange={(e) => setAmount(Number(e.target.value))}
+            disabled={status === "submitting"}
+            className={fieldClass}
+          />
+        </div>
+      )}
+      {errorMessage && <p className="text-xs text-red-600">{errorMessage}</p>}
+      <div className="flex gap-2">
+        <Button type="button" variant="outline" onClick={onCancel} disabled={status === "submitting"} className="flex-1">
+          Cancel
+        </Button>
+        <Button
+          type="submit"
+          disabled={status === "submitting"}
+          className="flex-1 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white"
+        >
+          {status === "submitting" ? "Redirecting…" : "Pay with Payfast"}
+        </Button>
+      </div>
+      <p className="text-[11px] text-gray-400 text-center">Charged in ZAR via Payfast, regardless of the currency shown above.</p>
+    </form>
   );
 }
 

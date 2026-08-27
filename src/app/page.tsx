@@ -47,7 +47,7 @@ export default function Home() {
           <img
             src="https://media.base44.com/images/public/691b0c6b868d3cd0bc483403/c6eb417d2_ENKORESYMBOLTEXTWHITEBACKGROUND.png"
             alt="ENKORE Music Africa"
-            className="h-16 w-16 object-contain"
+            className="h-32 w-32 object-contain"
           />
         </div>
         <div className="text-center max-w-md">

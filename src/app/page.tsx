@@ -83,18 +83,6 @@ export default function Home() {
 
       <FeatureCarousel />
 
-      {/* Slide 2 — Scripture */}
-      <Slide bg="bg-black" text="text-white">
-        <div className="text-center max-w-lg">
-          <p className="flex items-center justify-center gap-2 text-[#FF3700] text-xs font-black uppercase tracking-[0.3em] mb-6">
-            <Sparkle className="w-3 h-3" />
-            The Great Commission
-          </p>
-          <AnimatedText text='"Go therefore and make disciples of all nations."' className="font-black text-3xl leading-tight mb-4" />
-          <p className="text-gray-500 text-sm">Matthew 28:19</p>
-        </div>
-      </Slide>
-
       {/* Slide 3 — Mission */}
       <Slide bg="bg-white" text="text-black">
         <div className="text-center max-w-lg">

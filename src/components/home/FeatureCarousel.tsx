@@ -24,10 +24,17 @@ export default function FeatureCarousel() {
   const next = () => setActive((a) => Math.min(FEATURES.length - 1, a + 1));
 
   return (
-    <div className="snap-start w-full bg-black py-16 flex flex-col items-center">
+    <div className="snap-start w-full bg-black py-16 flex flex-col items-center px-4">
       <h2 className="text-white font-black text-3xl sm:text-4xl text-center mb-10 px-6">A Complete Platform</h2>
 
-      <div className="relative w-full max-w-xs sm:max-w-sm h-72 overflow-hidden [perspective:1000px]">
+      {/* Card width/height tuned against a recorded mobile pass of
+          revelator.com's own carousel: its active card runs ~83% of
+          viewport width, not a small fixed box — this mirrors that
+          proportion instead of the original's ~43%. Rotation/depth are
+          eased back from the first pass too, since Revelator's own
+          mobile cards sit almost flat (the pronounced 3D fan reads
+          mainly on desktop). */}
+      <div className="relative w-full max-w-sm sm:max-w-md h-96 overflow-hidden [perspective:1000px]">
         {FEATURES.map((f, i) => {
           const offset = i - active;
           const abs = Math.abs(offset);
@@ -35,19 +42,19 @@ export default function FeatureCarousel() {
           return (
             <div
               key={f.title}
-              className={`absolute top-0 left-1/2 w-40 sm:w-48 h-full rounded-2xl flex flex-col items-center justify-center gap-4 text-white shadow-2xl transition-all duration-500 ease-out ${f.color}`}
+              className={`absolute top-0 left-1/2 w-[82%] max-w-xs h-full rounded-2xl flex flex-col items-center justify-center gap-5 text-white shadow-2xl transition-all duration-500 ease-out ${f.color}`}
               style={{
-                transform: `translateX(-50%) translateX(${offset * 90}px) translateZ(${-abs * 80}px) rotateY(${offset * -30}deg)`,
+                transform: `translateX(-50%) translateX(${offset * 260}px) translateZ(${-abs * 40}px) rotateY(${offset * -12}deg)`,
                 opacity: abs > 2 ? 0 : 1,
                 zIndex: 10 - abs,
                 pointerEvents: abs > 2 ? "none" : "auto",
               }}
               aria-hidden={offset !== 0}
             >
-              <div className="w-14 h-14 rounded-full bg-white/20 flex items-center justify-center">
-                <Icon className="w-6 h-6" aria-hidden="true" />
+              <div className="w-20 h-20 rounded-full bg-white/20 flex items-center justify-center">
+                <Icon className="w-8 h-8" aria-hidden="true" />
               </div>
-              <span className="font-black text-lg text-center px-3">{f.title}</span>
+              <span className="font-black text-2xl text-center px-4">{f.title}</span>
             </div>
           );
         })}

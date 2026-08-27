@@ -14,13 +14,13 @@ import Sparkle from "@/components/home/Sparkle";
 // with no interactive walkthrough and no reference to anything not
 // actually built.
 const FEATURES = [
-  { icon: ShoppingCart, title: "Direct Sales", desc: "Sell your tracks direct to fans — no label middleman, no gatekeepers." },
+  { icon: ShoppingCart, title: "Music", desc: "Sell your tracks direct to fans — no label middleman, no gatekeepers." },
   { icon: ShoppingBag, title: "Merchandise", desc: "Offer merch to your community, sold straight from your own storefront." },
-  { icon: Ticket, title: "Ticketing", desc: "Sell tickets to your shows and events directly through ENKORE." },
-  { icon: Heart, title: "Fan Subscriptions", desc: "Build recurring support from fans who believe in your calling." },
-  { icon: MapPin, title: "Tour Funding", desc: "Raise support for tours and events from the community backing you." },
+  { icon: Ticket, title: "Tickets", desc: "Sell tickets to your shows and events directly through ENKORE." },
+  { icon: Heart, title: "Subscriptions", desc: "Build recurring support from fans who believe in your calling." },
+  { icon: MapPin, title: "Crowdfund", desc: "Raise support for tours and events from the community backing you." },
   { icon: Calendar, title: "Bookings", desc: "Accept booking enquiries and manage your availability in one place." },
-  { icon: Wallet, title: "Payouts", desc: "Full visibility into what you've earned, with transparent payouts." },
+  { icon: Wallet, title: "Payments", desc: "Full visibility into what you've earned, with transparent payouts." },
 ] as const;
 
 export default function DemoPage() {

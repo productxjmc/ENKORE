@@ -28,9 +28,6 @@ export default function Home() {
     return () => el.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const scrollToNext = () => {
-    scrollRef.current?.querySelectorAll("section")[1]?.scrollIntoView({ behavior: "smooth" });
-  };
   const scrollToTop = () => {
     scrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -60,19 +57,6 @@ export default function Home() {
           <AnimatedText text="Sell music, merchandise, tickets and get bookings," className="font-normal text-lg leading-relaxed opacity-90" delay={0.5} />
           <AnimatedText text="all in one place." className="font-normal text-lg leading-relaxed mb-10 opacity-90" delay={0.7} />
           <div className="flex flex-col gap-3">
-            <Link
-              href="/musician-pre-register"
-              className="w-full bg-white text-[#FF3700] font-black uppercase px-6 py-4 rounded-full text-sm text-center active:scale-[0.97] transition-transform shadow-lg"
-            >
-              Sign Up Free
-            </Link>
-            <button
-              type="button"
-              onClick={scrollToNext}
-              className="w-full bg-transparent border-2 border-white text-white font-bold uppercase px-6 py-4 rounded-full text-sm text-center active:scale-[0.97] transition-transform"
-            >
-              Show me how it works →
-            </button>
             <WaitlistField />
           </div>
         </div>

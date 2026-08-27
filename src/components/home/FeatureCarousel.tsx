@@ -9,13 +9,13 @@ import { ChevronLeft, ChevronRight, ShoppingCart, ShoppingBag, Ticket, Heart, Ma
 // FeatureMarquee ticker (same feature list, richer treatment) — the two
 // showing the same seven items back to back would have been redundant.
 const FEATURES = [
-  { title: "Direct Sales", icon: ShoppingCart, color: "bg-[#FF3700]" },
+  { title: "Music", icon: ShoppingCart, color: "bg-[#FF3700]" },
   { title: "Merchandise", icon: ShoppingBag, color: "bg-indigo-700" },
-  { title: "Ticketing", icon: Ticket, color: "bg-emerald-700" },
-  { title: "Fan Subscriptions", icon: Heart, color: "bg-rose-700" },
-  { title: "Tour Funding", icon: MapPin, color: "bg-amber-700" },
+  { title: "Tickets", icon: Ticket, color: "bg-emerald-700" },
+  { title: "Subscriptions", icon: Heart, color: "bg-rose-700" },
+  { title: "Crowdfund", icon: MapPin, color: "bg-amber-700" },
   { title: "Bookings", icon: Calendar, color: "bg-sky-700" },
-  { title: "Payouts", icon: Wallet, color: "bg-violet-700" },
+  { title: "Payments", icon: Wallet, color: "bg-violet-700" },
 ] as const;
 
 export default function FeatureCarousel() {

@@ -52,7 +52,7 @@ export default function Home() {
         </div>
         <div className="text-center max-w-md">
           <AnimatedText text="BUILT FOR CHRISTIAN MUSICIANS" className="font-black uppercase text-4xl leading-[0.95] tracking-tight" />
-          <AnimatedText text="BUILT FOR HIS GLORY" className="font-black uppercase text-xl leading-tight tracking-tight text-white/80 mb-8" delay={0.15} />
+          <AnimatedText text="BUILT FOR HIS GLORY" className="font-black uppercase text-4xl leading-[0.95] tracking-tight mb-8" delay={0.15} />
           <AnimatedText text="Amplify, thrive and sustain your music career." className="font-normal text-lg leading-relaxed opacity-90" delay={0.3} />
           <AnimatedText text="Sell music, merchandise, tickets and get bookings," className="font-normal text-lg leading-relaxed opacity-90" delay={0.5} />
           <AnimatedText text="all in one place." className="font-normal text-lg leading-relaxed mb-10 opacity-90" delay={0.7} />

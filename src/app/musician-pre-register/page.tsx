@@ -201,18 +201,6 @@ export default function MusicianPreRegisterPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
       >
-        <div className="mb-6">
-          <p className="text-[10px] font-bold tracking-[0.2em] uppercase text-[#FF3700] mb-3">Founding Musician Registration</p>
-
-          <h1 className="text-4xl md:text-5xl font-black leading-tight tracking-tight text-white mb-2">
-            Join <span className="text-[#FF3700]">ENKORE</span>
-          </h1>
-
-          <p className="text-gray-400 text-sm leading-relaxed max-w-lg">
-            Sell music, merchandise, tickets and more — directly to your community.
-          </p>
-        </div>
-
         <div className="flex items-center gap-0 mb-6">
           {STEPS.map((s, idx) => {
             const done = step > s.id;

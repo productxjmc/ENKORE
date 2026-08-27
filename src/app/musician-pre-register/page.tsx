@@ -12,6 +12,14 @@ import { CHRISTIAN_GENRE_OPTIONS } from "@/lib/validation/musicianPreRegistratio
 // board representation) — distinct from the free/open First Fruits tier
 // at /first-fruits, per the notes in "ENKORE Connect — First Fruits
 // Application Copy."
+//
+// Trimmed for a one-page-view pass: dropped the confirm_artist_name/
+// confirm_email/confirm_phone_number double-entry fields (handleSubmit
+// never sent them to the API even before this — they were purely a
+// client-side "type it twice" pattern with no backend effect), the
+// per-step explanatory sentences, the emoji trust-badge row, the
+// standalone ENKORE wordmark (redundant with the "Join ENKORE"
+// headline right below it), and the closing scripture block.
 const STEPS = [
   { id: 1, label: "Your Profile", icon: Music2 },
   { id: 2, label: "Contact", icon: Phone },
@@ -20,14 +28,11 @@ const STEPS = [
 
 type FormState = {
   artist_name: string;
-  confirm_artist_name: string;
   location: string;
   spotify_url: string;
   christian_genre: string;
   email: string;
-  confirm_email: string;
   phone_number: string;
-  confirm_phone_number: string;
   bio: string;
   discount_code: string;
 };
@@ -43,14 +48,11 @@ export default function MusicianPreRegisterPage() {
 
   const [form, setForm] = useState<FormState>({
     artist_name: "",
-    confirm_artist_name: "",
     location: "",
     spotify_url: "",
     christian_genre: "",
     email: "",
-    confirm_email: "",
     phone_number: "",
-    confirm_phone_number: "",
     bio: "",
     discount_code: "",
   });
@@ -78,18 +80,10 @@ export default function MusicianPreRegisterPage() {
     const e: FieldErrors = {};
     if (s === 1) {
       if (!form.artist_name) e.artist_name = "Required";
-      if (!form.confirm_artist_name) e.confirm_artist_name = "Required";
-      if (form.artist_name && form.confirm_artist_name && form.artist_name !== form.confirm_artist_name)
-        e.confirm_artist_name = "Names do not match";
     }
     if (s === 2) {
       if (!form.email) e.email = "Required";
-      if (!form.confirm_email) e.confirm_email = "Required";
-      if (form.email && form.confirm_email && form.email !== form.confirm_email) e.confirm_email = "Emails do not match";
       if (!form.phone_number) e.phone_number = "Required";
-      if (!form.confirm_phone_number) e.confirm_phone_number = "Required";
-      if (form.phone_number && form.confirm_phone_number && form.phone_number !== form.confirm_phone_number)
-        e.confirm_phone_number = "Numbers do not match";
     }
     return e;
   };
@@ -162,43 +156,33 @@ export default function MusicianPreRegisterPage() {
   return (
     <div className="min-h-screen bg-[#0A0A0A] overflow-x-hidden">
       <div className="max-w-2xl mx-auto px-5">
-        <div className="flex items-center justify-center pt-8 pb-2">
-          <span className="text-white font-black text-2xl tracking-tight">ENKORE</span>
-        </div>
         <Link
           href="/"
-          className="inline-flex items-center gap-1.5 text-gray-500 hover:text-white text-xs font-semibold tracking-widest uppercase transition-colors duration-150 py-4"
+          className="inline-flex items-center gap-1.5 text-gray-500 hover:text-white text-xs font-semibold tracking-widest uppercase transition-colors duration-150 py-6"
         >
           <ArrowLeft className="w-3.5 h-3.5" /> Back to Home
         </Link>
       </div>
 
       <motion.div
-        className="max-w-2xl mx-auto px-5 pb-24"
+        className="max-w-2xl mx-auto px-5 pb-12"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
       >
-        <div className="mb-10">
-          <div className="flex items-center gap-2 mb-4">
-            <svg width="16" height="16" viewBox="0 0 18 18" fill="none">
-              <rect x="7.5" y="1" width="3" height="16" rx="1" fill="#FF3700" />
-              <rect x="1" y="6.5" width="16" height="3" rx="1" fill="#FF3700" />
-            </svg>
-            <span className="text-[10px] font-bold tracking-[0.2em] uppercase text-[#FF3700]">Founding Musician Registration</span>
-          </div>
+        <div className="mb-6">
+          <p className="text-[10px] font-bold tracking-[0.2em] uppercase text-[#FF3700] mb-3">Founding Musician Registration</p>
 
-          <h1 className="text-5xl md:text-6xl font-black leading-tight tracking-tight text-white mb-2">
+          <h1 className="text-4xl md:text-5xl font-black leading-tight tracking-tight text-white mb-2">
             Join <span className="text-[#FF3700]">ENKORE</span>
           </h1>
 
           <p className="text-gray-400 text-sm leading-relaxed max-w-lg">
-            Build your career. Connect with your community. Sell music, merchandise, tickets and more, directly to your audience
-            across the world.
+            Sell music, merchandise, tickets and more — directly to your community.
           </p>
         </div>
 
-        <div className="flex items-center gap-0 mb-8">
+        <div className="flex items-center gap-0 mb-6">
           {STEPS.map((s, idx) => {
             const done = step > s.id;
             const active = step === s.id;
@@ -231,10 +215,9 @@ export default function MusicianPreRegisterPage() {
 
         <div className="bg-white rounded-2xl shadow-2xl shadow-black/40 overflow-hidden">
           {step === 1 && (
-            <div className="p-7 md:p-9">
+            <div className="p-6 md:p-8">
               <p className="text-[10px] font-bold tracking-[0.18em] uppercase text-[#FF3700] mb-1">Step 1 of 3</p>
-              <h2 className="text-xl font-black text-gray-900 mb-1">Your Musician Profile</h2>
-              <p className="text-sm text-gray-500 mb-6">Tell us who you are and what you sound like.</p>
+              <h2 className="text-xl font-black text-gray-900 mb-5">Your Musician Profile</h2>
 
               <div className="flex flex-col gap-5">
                 <Field label="Musician / Stage Name *" id="artist_name">
@@ -251,16 +234,6 @@ export default function MusicianPreRegisterPage() {
                   />
                 </Field>
 
-                <Field label="Confirm Musician / Stage Name *" id="confirm_artist_name">
-                  <input
-                    id="confirm_artist_name"
-                    value={form.confirm_artist_name}
-                    onChange={(e) => set("confirm_artist_name", e.target.value)}
-                    placeholder="Re-enter your name"
-                    className={inputBase("confirm_artist_name")}
-                  />
-                </Field>
-
                 <Field label="Location" id="location">
                   <input
                     id="location"
@@ -271,7 +244,7 @@ export default function MusicianPreRegisterPage() {
                   />
                 </Field>
 
-                <Field label="Gospel Genre" id="christian_genre" hint="Helps us connect you with the right community">
+                <Field label="Gospel Genre" id="christian_genre">
                   <select
                     id="christian_genre"
                     value={form.christian_genre}
@@ -287,7 +260,7 @@ export default function MusicianPreRegisterPage() {
                   </select>
                 </Field>
 
-                <Field label="Spotify / Boomplay Link" id="spotify_url" hint="Optional — helps us learn more about your music">
+                <Field label="Spotify / Boomplay Link" id="spotify_url" hint="Optional">
                   <input
                     id="spotify_url"
                     type="url"
@@ -298,13 +271,13 @@ export default function MusicianPreRegisterPage() {
                   />
                 </Field>
 
-                <Field label="Tell Us About Yourself" id="bio" hint="Optional — share your story and what drives your music">
+                <Field label="Tell Us About Yourself" id="bio" hint="Optional">
                   <textarea
                     id="bio"
                     value={form.bio}
                     onChange={(e) => set("bio", e.target.value)}
                     placeholder="Your musical journey, who you make music for, what you're working on…"
-                    className={`${inputBase("bio")} min-h-[100px] resize-none`}
+                    className={`${inputBase("bio")} min-h-[80px] resize-none`}
                   />
                 </Field>
               </div>
@@ -320,13 +293,12 @@ export default function MusicianPreRegisterPage() {
           )}
 
           {step === 2 && (
-            <div className="p-7 md:p-9">
+            <div className="p-6 md:p-8">
               <p className="text-[10px] font-bold tracking-[0.18em] uppercase text-[#FF3700] mb-1">Step 2 of 3</p>
-              <h2 className="text-xl font-black text-gray-900 mb-1">Contact Details</h2>
-              <p className="text-sm text-gray-500 mb-6">We&apos;ll send your membership confirmation to these details.</p>
+              <h2 className="text-xl font-black text-gray-900 mb-5">Contact Details</h2>
 
               <div className="flex flex-col gap-5">
-                <Field label="Email Address *" id="email" hint="Your membership confirmation will be sent here">
+                <Field label="Email Address *" id="email">
                   <input
                     id="email"
                     type="email"
@@ -337,38 +309,14 @@ export default function MusicianPreRegisterPage() {
                   />
                 </Field>
 
-                <Field label="Confirm Email *" id="confirm_email">
+                <Field label="WhatsApp Number *" id="phone_number" hint="Include country code">
                   <input
-                    id="confirm_email"
-                    type="email"
-                    value={form.confirm_email}
-                    onChange={(e) => set("confirm_email", e.target.value)}
-                    placeholder="Re-enter your email"
-                    className={inputBase("confirm_email")}
-                  />
-                </Field>
-
-                <div className="border-t border-gray-100 pt-5">
-                  <Field label="WhatsApp Number *" id="phone_number" hint="Include country code — e.g. +27 82 123 4567">
-                    <input
-                      id="phone_number"
-                      type="tel"
-                      value={form.phone_number}
-                      onChange={(e) => set("phone_number", e.target.value)}
-                      placeholder="+27 82 123 4567"
-                      className={inputBase("phone_number")}
-                    />
-                  </Field>
-                </div>
-
-                <Field label="Confirm WhatsApp Number *" id="confirm_phone_number">
-                  <input
-                    id="confirm_phone_number"
+                    id="phone_number"
                     type="tel"
-                    value={form.confirm_phone_number}
-                    onChange={(e) => set("confirm_phone_number", e.target.value)}
-                    placeholder="Re-enter phone number"
-                    className={inputBase("confirm_phone_number")}
+                    value={form.phone_number}
+                    onChange={(e) => set("phone_number", e.target.value)}
+                    placeholder="+27 82 123 4567"
+                    className={inputBase("phone_number")}
                   />
                 </Field>
               </div>
@@ -394,10 +342,9 @@ export default function MusicianPreRegisterPage() {
 
           {step === 3 && (
             <form onSubmit={handleSubmit}>
-              <div className="p-7 md:p-9">
+              <div className="p-6 md:p-8">
                 <p className="text-[10px] font-bold tracking-[0.18em] uppercase text-[#FF3700] mb-1">Step 3 of 3</p>
-                <h2 className="text-xl font-black text-gray-900 mb-1">Almost There!</h2>
-                <p className="text-sm text-gray-500 mb-6">Review what you&apos;re signing up for and submit your application.</p>
+                <h2 className="text-xl font-black text-gray-900 mb-5">Almost There!</h2>
 
                 <div className="bg-[#FFF5F2] border border-[#FF3700]/20 rounded-xl p-5 mb-5">
                   <p className="text-4xl font-black text-gray-900 leading-none mb-1">
@@ -424,12 +371,12 @@ export default function MusicianPreRegisterPage() {
                 <div className="flex items-start gap-3 bg-gray-50 border border-gray-100 rounded-xl p-4 mb-5">
                   <Clock className="w-4 h-4 text-[#FF3700] shrink-0 mt-0.5" />
                   <p className="text-xs text-gray-600 leading-relaxed">
-                    <strong className="text-gray-900 font-semibold">Application Review:</strong> We personally review every
-                    application. This typically takes <span className="text-[#FF3700] font-semibold">7 to 21 working days</span>.
+                    <strong className="text-gray-900 font-semibold">Application Review:</strong> Typically{" "}
+                    <span className="text-[#FF3700] font-semibold">7 to 21 working days</span>.
                   </p>
                 </div>
 
-                <Field label="Referral / Affiliate Code" id="discount_code" hint="Optional — if another musician referred you">
+                <Field label="Referral / Affiliate Code" id="discount_code" hint="Optional">
                   <input
                     id="discount_code"
                     value={form.discount_code}
@@ -438,20 +385,6 @@ export default function MusicianPreRegisterPage() {
                     className={inputBase("discount_code")}
                   />
                 </Field>
-
-                <div className="flex flex-wrap gap-4 mt-5 pt-5 border-t border-gray-100">
-                  {[
-                    { icon: "🇿🇦", text: "African-first" },
-                    { icon: "✅", text: "B-BBEE Level 1" },
-                    { icon: "🔒", text: "POPIA Compliant" },
-                    { icon: "🌍", text: "Global Reach" },
-                  ].map(({ icon, text }) => (
-                    <div key={text} className="flex items-center gap-1.5 text-xs font-medium text-gray-500">
-                      <span>{icon}</span>
-                      {text}
-                    </div>
-                  ))}
-                </div>
 
                 {submitError && <p className="text-xs text-[#FF3700] mt-4">{submitError}</p>}
 
@@ -485,27 +418,11 @@ export default function MusicianPreRegisterPage() {
                   <Link href="/privacy-policy" className="text-[#FF3700] hover:underline">
                     Privacy Policy
                   </Link>{" "}
-                  and Terms of Service.
-                  <br />
-                  Your information is secure and POPIA compliant.
+                  and Terms of Service. Your information is POPIA compliant.
                 </p>
               </div>
             </form>
           )}
-        </div>
-
-        <div className="mt-6 flex items-start gap-3 px-1">
-          <svg className="w-4 h-4 text-gray-600 shrink-0 mt-0.5" viewBox="0 0 20 20" fill="none">
-            <path d="M4 3h12a1 1 0 011 1v12a1 1 0 01-1 1H4a1 1 0 01-1-1V4a1 1 0 011-1z" stroke="currentColor" strokeWidth="1.3" />
-            <path d="M7 7h6M7 10h6M7 13h4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
-          </svg>
-          <div>
-            <p className="text-gray-500 text-xs leading-relaxed">
-              &quot;Go therefore and make disciples of all nations, baptizing them in the name of the Father and of the Son and of
-              the Holy Spirit.&quot;
-            </p>
-            <cite className="not-italic text-[10px] font-bold tracking-widest text-[#FF3700] mt-1 block">Matthew 28:19</cite>
-          </div>
         </div>
       </motion.div>
     </div>

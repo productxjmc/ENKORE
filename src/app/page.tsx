@@ -83,23 +83,6 @@ export default function Home() {
 
       <FeatureCarousel />
 
-      {/* Slide 3 — Mission */}
-      <Slide bg="bg-white" text="text-black">
-        <div className="text-center max-w-lg">
-          <p className="flex items-center justify-center gap-2 text-[#FF3700] text-xs font-black uppercase tracking-[0.3em] mb-6">
-            <Sparkle className="w-3 h-3" />
-            Our Mission
-          </p>
-          <AnimatedText text="Christian music is more than songs." className="font-black text-3xl leading-tight mb-6" />
-          <AnimatedText
-            text="It is a vehicle for the gospel — reaching hearts, building faith, and drawing people closer to God."
-            className="text-lg text-gray-600 leading-relaxed mb-8"
-            delay={0.2}
-          />
-          <AnimatedText text="But calling without sustainability is a ministry cut short." className="font-bold text-xl text-gray-900" delay={0.4} />
-        </div>
-      </Slide>
-
       {/* Slide 4 — For Musicians */}
       <Slide bg="bg-black" text="text-white">
         <div className="text-center max-w-md">

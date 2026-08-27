@@ -27,10 +27,6 @@ export default function Home() {
     return () => el.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const scrollToTop = () => {
-    scrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
   return (
     <div ref={scrollRef} className="fixed inset-0 overflow-y-scroll snap-y snap-mandatory scrollbar-hide z-0">
       {/* Slide 1 — Hero */}
@@ -66,27 +62,6 @@ export default function Home() {
       </Slide>
 
       <FeatureCarousel />
-
-      {/* Slide 5 — CTA */}
-      <Slide bg="bg-[#FF3700]" text="text-white">
-        <div className="text-center max-w-md">
-          <AnimatedText text="Your gift is your calling." className="font-black text-3xl mb-2" />
-          <AnimatedText text="ENKORE makes it your livelihood." className="font-black text-3xl mb-10" delay={0.2} />
-          <Link
-            href="/musician-pre-register"
-            className="inline-block bg-white text-[#FF3700] font-black uppercase px-10 py-4 rounded-full text-lg active:scale-[0.97] transition-transform shadow-lg"
-          >
-            Join the Mission
-          </Link>
-          <button
-            type="button"
-            onClick={scrollToTop}
-            className="block mx-auto mt-6 bg-transparent border-2 border-white text-white font-bold uppercase px-10 py-4 rounded-full text-lg text-center active:scale-[0.97] transition-transform"
-          >
-            Back to Top
-          </button>
-        </div>
-      </Slide>
 
       {/* Slide 6 — Footer */}
       <Slide bg="bg-black" text="text-white">

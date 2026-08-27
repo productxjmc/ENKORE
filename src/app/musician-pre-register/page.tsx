@@ -130,18 +130,49 @@ export default function MusicianPreRegisterPage() {
     }
   };
 
+  // peer + placeholder=" " on the input drives the floating animation:
+  // :placeholder-shown is only true while the field is empty, so the
+  // label sits large/centered like a placeholder at rest and floats up
+  // into a small label once there's a value or the field is focused —
+  // real <label>, never just placeholder text, so it stays available to
+  // screen readers and never disappears the way placeholder-only labels do.
   const inputBase = (field: keyof FormState) =>
-    `w-full bg-white border rounded-xl px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 outline-none transition-colors duration-150 focus:ring-2 focus:ring-[#FF3700]/30 focus:border-[#FF3700] ${
+    `peer w-full bg-white border rounded-xl px-4 pt-6 pb-2 text-sm text-gray-900 outline-none transition-colors duration-150 focus:ring-2 focus:ring-[#FF3700]/30 focus:border-[#FF3700] ${
       errors[field] ? "border-[#FF3700] ring-2 ring-[#FF3700]/20" : "border-gray-200 hover:border-gray-300"
     }`;
 
-  function Field({ label, id, children, hint }: { label: string; id: keyof FormState; children: ReactNode; hint?: string }) {
+  // animated fields (plain inputs) float from a placeholder-like resting
+  // position; select/textarea can't use :placeholder-shown the same way,
+  // so their label just sits permanently in the floated position.
+  function floatingLabelClasses(hasError: boolean, animated: boolean) {
+    const restColor = hasError ? "text-[#FF3700]" : "text-gray-500";
+    const emptyColor = hasError ? "text-[#FF3700]" : "text-gray-400";
+    const base = `absolute left-4 top-2 text-[10px] font-semibold uppercase tracking-wide pointer-events-none transition-all duration-150 ${restColor}`;
+    if (!animated) return base;
+    return `${base} peer-placeholder-shown:top-1/2 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:text-sm peer-placeholder-shown:font-normal peer-placeholder-shown:normal-case peer-placeholder-shown:tracking-normal peer-placeholder-shown:${emptyColor} peer-placeholder-shown:peer-focus:top-2 peer-placeholder-shown:peer-focus:translate-y-0 peer-placeholder-shown:peer-focus:text-[10px] peer-placeholder-shown:peer-focus:font-semibold peer-placeholder-shown:peer-focus:uppercase peer-placeholder-shown:peer-focus:tracking-wide peer-focus:text-[#FF3700] peer-placeholder-shown:peer-focus:text-[#FF3700]`;
+  }
+
+  function Field({
+    label,
+    id,
+    children,
+    hint,
+    animated = true,
+  }: {
+    label: string;
+    id: keyof FormState;
+    children: ReactNode;
+    hint?: string;
+    animated?: boolean;
+  }) {
     return (
       <div className="flex flex-col gap-1">
-        <label htmlFor={id} className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-          {label}
-        </label>
-        {children}
+        <div className="relative">
+          {children}
+          <label htmlFor={id} className={floatingLabelClasses(Boolean(errors[id]), animated)}>
+            {label}
+          </label>
+        </div>
         {errors[id] && (
           <p className="text-xs text-[#FF3700] flex items-center gap-1 mt-0.5">
             <span className="w-1 h-1 rounded-full bg-[#FF3700] inline-block" />
@@ -225,7 +256,7 @@ export default function MusicianPreRegisterPage() {
                     id="artist_name"
                     value={form.artist_name}
                     onChange={(e) => set("artist_name", e.target.value)}
-                    placeholder="e.g. Joyous Celebration, Moses Bliss"
+                    placeholder=" "
                     className={inputBase("artist_name")}
                     autoComplete="off"
                     autoCorrect="off"
@@ -239,12 +270,12 @@ export default function MusicianPreRegisterPage() {
                     id="location"
                     value={form.location}
                     onChange={(e) => set("location", e.target.value)}
-                    placeholder="Johannesburg, South Africa"
+                    placeholder=" "
                     className={inputBase("location")}
                   />
                 </Field>
 
-                <Field label="Gospel Genre" id="christian_genre">
+                <Field label="Gospel Genre" id="christian_genre" animated={false}>
                   <select
                     id="christian_genre"
                     value={form.christian_genre}
@@ -266,18 +297,18 @@ export default function MusicianPreRegisterPage() {
                     type="url"
                     value={form.spotify_url}
                     onChange={(e) => set("spotify_url", e.target.value)}
-                    placeholder="open.spotify.com/artist/… or boomplay.com/…"
+                    placeholder=" "
                     className={inputBase("spotify_url")}
                   />
                 </Field>
 
-                <Field label="Tell Us About Yourself" id="bio" hint="Optional">
+                <Field label="Tell Us About Yourself" id="bio" hint="Optional" animated={false}>
                   <textarea
                     id="bio"
                     value={form.bio}
                     onChange={(e) => set("bio", e.target.value)}
                     placeholder="Your musical journey, who you make music for, what you're working on…"
-                    className={`${inputBase("bio")} min-h-[80px] resize-none`}
+                    className={`${inputBase("bio")} min-h-[90px] resize-none`}
                   />
                 </Field>
               </div>
@@ -304,7 +335,7 @@ export default function MusicianPreRegisterPage() {
                     type="email"
                     value={form.email}
                     onChange={(e) => set("email", e.target.value)}
-                    placeholder="musician@example.com"
+                    placeholder=" "
                     className={inputBase("email")}
                   />
                 </Field>
@@ -315,7 +346,7 @@ export default function MusicianPreRegisterPage() {
                     type="tel"
                     value={form.phone_number}
                     onChange={(e) => set("phone_number", e.target.value)}
-                    placeholder="+27 82 123 4567"
+                    placeholder=" "
                     className={inputBase("phone_number")}
                   />
                 </Field>
@@ -381,7 +412,7 @@ export default function MusicianPreRegisterPage() {
                     id="discount_code"
                     value={form.discount_code}
                     onChange={(e) => set("discount_code", e.target.value)}
-                    placeholder="Enter referral code if you have one"
+                    placeholder=" "
                     className={inputBase("discount_code")}
                   />
                 </Field>

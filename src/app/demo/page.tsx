@@ -17,9 +17,9 @@ const FEATURES = [
   { icon: ShoppingCart, title: "Music", desc: "Sell your tracks direct to fans — no label middleman, no gatekeepers." },
   { icon: ShoppingBag, title: "Merchandise", desc: "Offer merch to your community, sold straight from your own storefront." },
   { icon: Ticket, title: "Tickets", desc: "Sell tickets to your shows and events directly through ENKORE." },
+  { icon: Calendar, title: "Bookings", desc: "Accept booking enquiries and manage your availability in one place." },
   { icon: Heart, title: "Subscriptions", desc: "Build recurring support from fans who believe in your calling." },
   { icon: MapPin, title: "Crowdfund", desc: "Raise support for tours and events from the community backing you." },
-  { icon: Calendar, title: "Bookings", desc: "Accept booking enquiries and manage your availability in one place." },
   { icon: Wallet, title: "Payments", desc: "Full visibility into what you've earned, with transparent payouts." },
 ] as const;
 
@@ -65,7 +65,7 @@ export default function DemoPage() {
               <div className="w-11 h-11 rounded-full bg-[#FF3700]/15 flex items-center justify-center mb-4">
                 <Icon className="w-5 h-5 text-[#FF3700]" />
               </div>
-              <h3 className="font-black text-lg mb-1">{title}</h3>
+              <h3 className="font-black uppercase text-lg mb-1">{title}</h3>
               <p className="text-sm text-gray-400 leading-relaxed">{desc}</p>
             </div>
           ))}

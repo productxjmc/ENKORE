@@ -12,9 +12,9 @@ const FEATURES = [
   { title: "Music", icon: ShoppingCart, color: "bg-[#FF3700]" },
   { title: "Merchandise", icon: ShoppingBag, color: "bg-indigo-700" },
   { title: "Tickets", icon: Ticket, color: "bg-emerald-700" },
+  { title: "Bookings", icon: Calendar, color: "bg-sky-700" },
   { title: "Subscriptions", icon: Heart, color: "bg-rose-700" },
   { title: "Crowdfund", icon: MapPin, color: "bg-amber-700" },
-  { title: "Bookings", icon: Calendar, color: "bg-sky-700" },
   { title: "Payments", icon: Wallet, color: "bg-violet-700" },
 ] as const;
 
@@ -54,7 +54,7 @@ export default function FeatureCarousel() {
               <div className="w-20 h-20 rounded-full bg-white/20 flex items-center justify-center">
                 <Icon className="w-8 h-8" aria-hidden="true" />
               </div>
-              <span className="font-black text-2xl text-center px-4">{f.title}</span>
+              <span className="font-black uppercase text-2xl text-center px-4">{f.title}</span>
             </div>
           );
         })}

@@ -178,9 +178,13 @@ alter table "TicketPurchase" force row level security;
 create policy ticketpurchase_select on "TicketPurchase" for select using (
   app.owns_fan("fanId") or app.owns_musician("musicianId") or app.is_admin()
 );
--- No client insert policy: ticket purchases are created server-side only,
+-- No PUBLIC insert policy — ticket purchases are created server-side only,
 -- from a verified payment-gateway webhook (never trust client-asserted
 -- payment status — see the Yoco price-validation gap noted separately).
+-- Still needs its own app.is_admin()-scoped policy for that server code to
+-- write through at all — RLS is default-deny per command, confirmed the
+-- hard way on Purchase's identical pattern (see the comment there).
+create policy ticketpurchase_write on "TicketPurchase" for insert with check (app.is_admin());
 create policy ticketpurchase_modify on "TicketPurchase" for update using (app.owns_musician("musicianId") or app.is_admin())
   with check (app.owns_musician("musicianId") or app.is_admin());
 create policy ticketpurchase_delete on "TicketPurchase" for delete using (app.owns_musician("musicianId") or app.is_admin());
@@ -222,7 +226,10 @@ alter table "TourContribution" force row level security;
 create policy tourcontribution_select on "TourContribution" for select using (
   app.owns_musician("musicianId") or ("fanEmail" = app.email() and app.email() is not null) or app.is_admin()
 );
--- No client insert: created server-side from a verified payment webhook.
+-- No PUBLIC insert — created server-side from a verified payment webhook.
+-- Same app.is_admin() write policy needed for that code to write at all —
+-- see the Purchase comment for why omitting this isn't merely stricter.
+create policy tourcontribution_write on "TourContribution" for insert with check (app.is_admin());
 create policy tourcontribution_modify on "TourContribution" for update using (app.owns_musician("musicianId") or app.is_admin())
   with check (app.owns_musician("musicianId") or app.is_admin());
 create policy tourcontribution_delete on "TourContribution" for delete using (app.is_admin());
@@ -236,10 +243,27 @@ alter table "Purchase" force row level security;
 create policy purchase_select on "Purchase" for select using (
   ("fanEmail" = app.email() and app.email() is not null) or app.owns_musician("musicianId") or app.is_admin()
 );
--- No client insert/update: purchases are created and finalised only from
--- a verified payment-gateway webhook, with the price re-validated
--- server-side against Track.minimumPrice — see the Yoco gap noted in the
--- code review; this policy assumes that fix lands before this ships.
+-- No PUBLIC/plain-user insert or update path — unlike the lead-gen tables,
+-- a financial record gets no `with check (true)` insert. Confirmed the
+-- hard way: RLS is default-deny per command, so simply omitting a policy
+-- does NOT mean "the admin/service-role context can still write" — it
+-- means nobody can, service role included, until an explicit policy says
+-- so. purchase_write below is that policy, scoped to app.is_admin() (which
+-- is what withServiceRole's context satisfies); anonymous/regular callers
+-- still can't reach it since they're never granted that role. The only two
+-- callers that ever run under an admin/service-role context here:
+--   1. The payment-initialize route (src/app/api/payments/payfast/
+--      initialize) — trusted because IT does the price validation, against
+--      Track.minimumPrice, before creating the pending row. This is the
+--      fix for the Yoco gap noted in the code review: initializePayment's
+--      original Payfast path already did this correctly; initializeYoco/
+--      initializePaymentGateway (a newer, undocumented second gateway
+--      path found while porting Payfast) did not.
+--   2. The webhook (src/app/api/webhooks/payfast) — trusted because it
+--      verifies Payfast's signature and calls Payfast's own confirm
+--      endpoint before ever touching this table.
+create policy purchase_write on "Purchase" for insert with check (app.is_admin());
+create policy purchase_modify on "Purchase" for update using (app.is_admin()) with check (app.is_admin());
 create policy purchase_delete on "Purchase" for delete using (app.is_admin());
 
 alter table "Merchandise" enable row level security;
@@ -253,7 +277,10 @@ alter table "MerchandiseOrder" force row level security;
 create policy merchandiseorder_select on "MerchandiseOrder" for select using (
   ("fanEmail" = app.email() and app.email() is not null) or app.owns_musician("musicianId") or app.is_admin()
 );
--- No client insert: created server-side from a verified payment webhook.
+-- No PUBLIC insert — created server-side from a verified payment webhook.
+-- Same app.is_admin() write policy needed for that code to write at all —
+-- see the Purchase comment for why omitting this isn't merely stricter.
+create policy merchandiseorder_write on "MerchandiseOrder" for insert with check (app.is_admin());
 create policy merchandiseorder_modify on "MerchandiseOrder" for update using (app.owns_musician("musicianId") or app.is_admin())
   with check (app.owns_musician("musicianId") or app.is_admin());
 create policy merchandiseorder_delete on "MerchandiseOrder" for delete using (app.is_admin());
@@ -263,7 +290,10 @@ alter table "FanSubscription" force row level security;
 create policy fansubscription_select on "FanSubscription" for select using (
   ("fanEmail" = app.email() and app.email() is not null) or app.owns_musician("musicianId") or app.is_admin()
 );
--- No client insert: created server-side once the first payment clears.
+-- No PUBLIC insert — created server-side once the first payment clears.
+-- Same app.is_admin() write policy needed for that code to write at all —
+-- see the Purchase comment for why omitting this isn't merely stricter.
+create policy fansubscription_write on "FanSubscription" for insert with check (app.is_admin());
 create policy fansubscription_modify on "FanSubscription" for update using (app.is_admin())
   with check (app.is_admin()); -- cancellation goes through an API route, not a direct row edit
 create policy fansubscription_delete on "FanSubscription" for delete using (app.is_admin());
@@ -273,7 +303,11 @@ alter table "MusicianSubscription" force row level security;
 create policy musiciansubscription_select on "MusicianSubscription" for select using (
   app.owns_musician("musicianId") or app.is_admin()
 );
--- No client insert/update: subscription lifecycle is server-managed.
+-- No PUBLIC insert/update — subscription lifecycle is server-managed.
+-- Same app.is_admin() write policy needed for that code to write at all —
+-- see the Purchase comment for why omitting this isn't merely stricter.
+create policy musiciansubscription_write on "MusicianSubscription" for insert with check (app.is_admin());
+create policy musiciansubscription_modify on "MusicianSubscription" for update using (app.is_admin()) with check (app.is_admin());
 create policy musiciansubscription_delete on "MusicianSubscription" for delete using (app.is_admin());
 
 alter table "SubscriptionPayment" enable row level security;
@@ -281,9 +315,15 @@ alter table "SubscriptionPayment" force row level security;
 create policy subscriptionpayment_select on "SubscriptionPayment" for select using (
   ("musicianEmail" = app.email() and app.email() is not null) or app.owns_musician("musicianId") or app.is_admin()
 );
--- No client insert/update/delete at all — matches Base44's original
--- `create: false, update: false` (server/webhook-only, deliberately) plus
--- admin-only delete for corrections.
+-- No PUBLIC insert/update — matches Base44's original `create: false,
+-- update: false` (server/webhook-only, deliberately). That original rule
+-- still let Base44's own backend functions write, through a first-party
+-- privilege bypass outside the entity RLS system entirely; app.is_admin()
+-- is this rebuild's equivalent, and — same as everywhere else this
+-- pattern appears — needs its own explicit policy or nothing can write,
+-- service-role code included.
+create policy subscriptionpayment_write on "SubscriptionPayment" for insert with check (app.is_admin());
+create policy subscriptionpayment_modify on "SubscriptionPayment" for update using (app.is_admin()) with check (app.is_admin());
 create policy subscriptionpayment_delete on "SubscriptionPayment" for delete using (app.is_admin());
 
 -- ─────────────────────────────────────────────────────────────────────────

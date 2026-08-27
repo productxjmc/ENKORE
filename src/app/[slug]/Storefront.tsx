@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ActionButton from "@/components/common/ActionButton";
 import CurrencySelector from "@/components/CurrencySelector";
 import { useCurrency } from "@/lib/useCurrency";
-import { formatFromZar } from "@/lib/pricingConfig";
+import { formatFromZar, convertFromZar, CURRENCIES } from "@/lib/pricingConfig";
 
 type SocialLinks = { instagram?: string; twitter?: string; facebook?: string };
 
@@ -164,7 +164,7 @@ export function Storefront({ musician, tracks }: { musician: PlainMusician; trac
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {tracks.map((track) => (
-                  <TrackCard key={track.id} track={track} currency={currency} />
+                  <TrackCard key={track.id} track={track} currency={currency} musicianCountry={musician.country} />
                 ))}
               </div>
             )}
@@ -191,7 +191,15 @@ export function Storefront({ musician, tracks }: { musician: PlainMusician; trac
   );
 }
 
-function TrackCard({ track, currency }: { track: PlainTrack; currency: ReturnType<typeof useCurrency>["currency"] }) {
+function TrackCard({
+  track,
+  currency,
+  musicianCountry,
+}: {
+  track: PlainTrack;
+  currency: ReturnType<typeof useCurrency>["currency"];
+  musicianCountry: Musician["country"];
+}) {
   const [checkoutOpen, setCheckoutOpen] = useState(false);
 
   return (
@@ -230,7 +238,7 @@ function TrackCard({ track, currency }: { track: PlainTrack; currency: ReturnTyp
             )}
           </div>
           {checkoutOpen ? (
-            <TrackCheckout track={track} onCancel={() => setCheckoutOpen(false)} />
+            <TrackCheckout track={track} musicianCountry={musicianCountry} onCancel={() => setCheckoutOpen(false)} />
           ) : (
             <Button onClick={() => setCheckoutOpen(true)} className="w-full mt-4 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white">
               Buy Track
@@ -242,16 +250,33 @@ function TrackCard({ track, currency }: { track: PlainTrack; currency: ReturnTyp
   );
 }
 
-// Payfast processes ZAR only — the multi-currency figures elsewhere on
-// this page are display conversions, and none of that conversion belongs
-// anywhere near what's actually submitted for payment. This form always
-// works in the track's real ZAR-denominated minimumPrice/basePrice, never
-// the fan's currently-selected display currency, so there's no place a
-// conversion bug could turn into someone being charged the wrong amount.
-function TrackCheckout({ track, onCancel }: { track: PlainTrack; onCancel: () => void }) {
+// Track prices are stored as a single ZAR-denominated number regardless of
+// the musician's country (matches the original schema's own "Suggested
+// price in ZAR" comment on the field) — but Kyshi charges in NGN, not ZAR.
+// Sending the raw ZAR number straight to Kyshi with localCurrency: "NGN"
+// would silently charge a Nigerian fan orders-of-magnitude less than
+// intended (₦50 instead of the ZAR-equivalent ₦1,600ish). Both gateways
+// below convert through the same convertFromZar() the storefront's price
+// display already uses, so the amount shown, the amount submitted, and
+// the amount charged are always the same number in the same currency —
+// no place for a ZAR/NGN mixup to reach an actual payment.
+function TrackCheckout({
+  track,
+  musicianCountry,
+  onCancel,
+}: {
+  track: PlainTrack;
+  musicianCountry: Musician["country"];
+  onCancel: () => void;
+}) {
+  const gateway = musicianCountry === "NIGERIA" ? "kyshi" : "payfast";
+  const checkoutCurrency = gateway === "kyshi" ? "NGN" : "ZAR";
+  const zarBase = track.payWhatYouWant ? track.minimumPrice : (track.basePrice ?? track.minimumPrice);
+  const minAmount = convertFromZar(track.minimumPrice, checkoutCurrency);
+
   const [fanName, setFanName] = useState("");
   const [fanEmail, setFanEmail] = useState("");
-  const [amount, setAmount] = useState(track.payWhatYouWant ? track.minimumPrice : (track.basePrice ?? track.minimumPrice));
+  const [amount, setAmount] = useState(convertFromZar(zarBase, checkoutCurrency));
   const [status, setStatus] = useState<"idle" | "submitting" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -261,6 +286,27 @@ function TrackCheckout({ track, onCancel }: { track: PlainTrack; onCancel: () =>
     setErrorMessage(null);
 
     try {
+      if (gateway === "kyshi") {
+        const res = await fetch("/api/payments/kyshi/initialize", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            trackId: track.id,
+            musicianId: track.musicianId,
+            fanEmail,
+            fanName: fanName || undefined,
+            amount,
+            localCurrency: "NGN",
+          }),
+        });
+        const body = await res.json();
+        if (!res.ok) throw new Error(body?.error || "Something went wrong. Please try again.");
+        // Kyshi's checkout is a hosted page you GET-redirect to, unlike
+        // Payfast's form-POST.
+        window.location.href = body.authorizationUrl;
+        return;
+      }
+
       const res = await fetch("/api/payments/payfast/initialize", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -315,11 +361,11 @@ function TrackCheckout({ track, onCancel }: { track: PlainTrack; onCancel: () =>
       />
       {track.payWhatYouWant && (
         <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-500">R</span>
+          <span className="text-sm text-gray-500">{CURRENCIES[checkoutCurrency].prefix}</span>
           <input
             type="number"
             required
-            min={track.minimumPrice}
+            min={minAmount}
             step="0.01"
             value={amount}
             onChange={(e) => setAmount(Number(e.target.value))}
@@ -338,10 +384,12 @@ function TrackCheckout({ track, onCancel }: { track: PlainTrack; onCancel: () =>
           disabled={status === "submitting"}
           className="flex-1 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white"
         >
-          {status === "submitting" ? "Redirecting…" : "Pay with Payfast"}
+          {status === "submitting" ? "Redirecting…" : gateway === "kyshi" ? "Pay with Kyshi" : "Pay with Payfast"}
         </Button>
       </div>
-      <p className="text-[11px] text-gray-400 text-center">Charged in ZAR via Payfast, regardless of the currency shown above.</p>
+      <p className="text-[11px] text-gray-400 text-center">
+        Charged in {checkoutCurrency} via {gateway === "kyshi" ? "Kyshi" : "Payfast"}, regardless of the currency shown above.
+      </p>
     </form>
   );
 }

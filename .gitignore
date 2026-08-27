@@ -30,8 +30,12 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
+# env files — .env* excludes every real secret file, but that pattern
+# also silently excluded .env.example, which has no secrets and should be
+# committed as the reference for which vars an environment (Vercel
+# included) needs. Caught while deploying, not from inspection.
 .env*
+!.env.example
 
 # vercel
 .vercel

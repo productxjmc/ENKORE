@@ -134,6 +134,9 @@ export default function Home() {
             <Link href="/first-fruits" className="hover:text-white transition-colors">
               First Fruits Application
             </Link>
+            <Link href="/demo" className="hover:text-white transition-colors">
+              Demo
+            </Link>
           </div>
           <p className="text-gray-600 text-xs">© 2026 ENKORE · Fanbase Africa (Pty) Ltd</p>
         </div>

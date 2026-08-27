@@ -7,7 +7,7 @@ import { motion } from "framer-motion";
 import Slide from "@/components/presentation/Slide";
 import AnimatedText from "@/components/presentation/AnimatedText";
 import WaitlistField from "@/components/home/WaitlistField";
-import FeatureMarquee from "@/components/home/FeatureMarquee";
+import FeatureCarousel from "@/components/home/FeatureCarousel";
 import Sparkle from "@/components/home/Sparkle";
 
 // Ported from the Base44 app's src/pages/Home.jsx — the 5-slide scroll-snap
@@ -81,7 +81,7 @@ export default function Home() {
         </motion.div>
       </Slide>
 
-      <FeatureMarquee />
+      <FeatureCarousel />
 
       {/* Slide 2 — Scripture */}
       <Slide bg="bg-black" text="text-white">

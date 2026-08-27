@@ -8,7 +8,6 @@ import Slide from "@/components/presentation/Slide";
 import AnimatedText from "@/components/presentation/AnimatedText";
 import WaitlistField from "@/components/home/WaitlistField";
 import FeatureCarousel from "@/components/home/FeatureCarousel";
-import Sparkle from "@/components/home/Sparkle";
 
 // Ported from the Base44 app's src/pages/Home.jsx — the 5-slide scroll-snap
 // narrative and the waitlist are unchanged. Scoped down for a same-day
@@ -66,38 +65,6 @@ export default function Home() {
       </Slide>
 
       <FeatureCarousel />
-
-      {/* Slide 4 — For Musicians */}
-      <Slide bg="bg-black" text="text-white">
-        <div className="text-center max-w-md">
-          <p className="flex items-center justify-center gap-2 text-[#FF3700] text-xs font-black uppercase tracking-[0.3em] mb-4">
-            <Sparkle className="w-3 h-3" />
-            Made For
-          </p>
-          <AnimatedText text="Musicians" className="font-black uppercase text-6xl leading-none tracking-tight mb-6" />
-          <AnimatedText
-            text="Upload tracks and sell direct — no label middleman, no gatekeepers. Track revenue, manage payouts, and plan events, all in one place."
-            className="text-lg text-gray-400 leading-relaxed"
-            delay={0.2}
-          />
-        </div>
-      </Slide>
-
-      {/* Slide 4b — For Fans */}
-      <Slide bg="bg-gray-50" text="text-black">
-        <div className="text-center max-w-md">
-          <p className="flex items-center justify-center gap-2 text-[#FF3700] text-xs font-black uppercase tracking-[0.3em] mb-4">
-            <Sparkle className="w-3 h-3" />
-            Made For
-          </p>
-          <AnimatedText text="Fans" className="font-black uppercase text-6xl leading-none tracking-tight mb-6" />
-          <AnimatedText
-            text="Support the musicians shaping your faith. Buy their music, back their tours, and become part of the community they're building."
-            className="text-lg text-gray-600 leading-relaxed"
-            delay={0.2}
-          />
-        </div>
-      </Slide>
 
       {/* Slide 5 — CTA */}
       <Slide bg="bg-[#FF3700]" text="text-white">

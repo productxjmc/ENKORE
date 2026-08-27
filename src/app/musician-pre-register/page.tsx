@@ -279,7 +279,7 @@ export default function MusicianPreRegisterPage() {
                   </select>
                 </Field>
 
-                <Field label="Spotify / Boomplay Link" id="spotify_url" hint="Optional">
+                <Field label="Spotify / YouTube Link" id="spotify_url" hint="Optional">
                   <input
                     id="spotify_url"
                     type="url"

@@ -42,6 +42,10 @@ type FieldErrors = Partial<Record<keyof FormState, string>>;
 export default function MusicianPreRegisterPage() {
   const router = useRouter();
   const [step, setStep] = useState(1);
+  // Tracks the furthest step already validated into, independent of `step`
+  // itself — lets the step indicator stay clickable for review/editing
+  // without ever letting someone jump ahead of a step they haven't passed.
+  const [furthestStep, setFurthestStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [referralCode, setReferralCode] = useState("");
@@ -95,7 +99,19 @@ export default function MusicianPreRegisterPage() {
       return;
     }
     setErrors({});
-    setStep((s) => s + 1);
+    const nextStep = step + 1;
+    setStep(nextStep);
+    setFurthestStep((f) => Math.max(f, nextStep));
+  };
+
+  // Only lets you jump to a step you've already reached (via Next), so
+  // reviewing/editing an earlier step never skips the validation a later
+  // one still needs.
+  const goToStep = (id: number) => {
+    if (id <= furthestStep) {
+      setErrors({});
+      setStep(id);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -205,12 +221,19 @@ export default function MusicianPreRegisterPage() {
           {STEPS.map((s, idx) => {
             const done = step > s.id;
             const active = step === s.id;
+            const reachable = s.id <= furthestStep;
             const Icon = s.icon;
             return (
               <div key={s.id} className="contents">
-                <div className="flex flex-col items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => goToStep(s.id)}
+                  disabled={!reachable}
+                  aria-current={active ? "step" : undefined}
+                  className={`flex flex-col items-center gap-1.5 ${reachable ? "cursor-pointer" : "cursor-not-allowed"}`}
+                >
                   <div
-                    className={`w-9 h-9 rounded-full flex items-center justify-center border-2 transition-colors duration-200 ${
+                    className={`w-11 h-11 rounded-full flex items-center justify-center border-2 transition-colors duration-200 ${
                       done ? "bg-[#FF3700] border-[#FF3700]" : active ? "bg-transparent border-[#FF3700]" : "bg-transparent border-gray-700"
                     }`}
                   >
@@ -223,9 +246,9 @@ export default function MusicianPreRegisterPage() {
                   <span className={`text-[10px] font-semibold tracking-wide ${active ? "text-white" : done ? "text-[#FF3700]" : "text-gray-600"}`}>
                     {s.label}
                   </span>
-                </div>
+                </button>
                 {idx < STEPS.length - 1 && (
-                  <div className={`flex-1 h-px mx-2 mb-4 transition-colors duration-200 ${step > s.id ? "bg-[#FF3700]" : "bg-gray-800"}`} />
+                  <div className={`flex-1 h-px mx-2 mb-5 transition-colors duration-200 ${step > s.id ? "bg-[#FF3700]" : "bg-gray-800"}`} />
                 )}
               </div>
             );

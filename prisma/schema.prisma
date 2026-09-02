@@ -1003,6 +1003,41 @@ model FirstFruitsApplication {
   updatedAt DateTime @updatedAt
 }
 
+enum SeasonOfSingingStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+/// "Season of Singing" — replaces First Fruits (see marketing plan). Real,
+/// capped offer: first 100 accepted applicants get full platform access,
+/// 0% ENKORE commission, free for 3 months. Application window Sept 2-15,
+/// 14 days. The two consent booleans below are required checkboxes on the
+/// form itself, matching the term sheet's field list exactly — this is a
+/// real program with real terms, not just a lead-gen form, so consent is
+/// captured at submission rather than assumed.
+model SeasonOfSingingApplication {
+  id String @id @default(cuid())
+
+  artistName     String
+  location       String?
+  songLink       String // Spotify, YouTube, or a voice note link
+  christianGenre ChristianGenre?
+  email          String
+  phoneNumber    String
+  bio            String? // 2-3 sentence short bio
+  howHeard       String? // free-text/dropdown: TikTok video, TikTok ad, DJ Garth, DJ Sebz, Sparky, other
+
+  agreedToTerms       Boolean @default(false) // "I have read and agree to the Season of Singing Program Terms, including the monthly feedback requirement"
+  agreedToLaunchTerms Boolean @default(false) // "I understand my page launches (and 3-month term begins) as onboarding completes, no later than Sept 23, and I'm not guaranteed a spot by applying"
+
+  status     SeasonOfSingingStatus @default(PENDING)
+  acceptedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 enum NominationStatus {
   PENDING
   CONTACTED

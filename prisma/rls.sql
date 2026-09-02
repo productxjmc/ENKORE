@@ -394,6 +394,13 @@ create policy firstfruitsapplication_insert on "FirstFruitsApplication" for inse
 create policy firstfruitsapplication_modify on "FirstFruitsApplication" for update using (app.is_admin()) with check (app.is_admin());
 create policy firstfruitsapplication_delete on "FirstFruitsApplication" for delete using (app.is_admin());
 
+alter table "SeasonOfSingingApplication" enable row level security;
+alter table "SeasonOfSingingApplication" force row level security;
+create policy seasonofsingingapplication_select on "SeasonOfSingingApplication" for select using (app.is_admin());
+create policy seasonofsingingapplication_insert on "SeasonOfSingingApplication" for insert with check (true);
+create policy seasonofsingingapplication_modify on "SeasonOfSingingApplication" for update using (app.is_admin()) with check (app.is_admin());
+create policy seasonofsingingapplication_delete on "SeasonOfSingingApplication" for delete using (app.is_admin());
+
 alter table "MusicianNomination" enable row level security;
 alter table "MusicianNomination" force row level security;
 create policy musiciannomination_select on "MusicianNomination" for select using (app.is_admin());

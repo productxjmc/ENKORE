@@ -115,6 +115,9 @@ export default function Home() {
               <WaitlistField />
             </div>
             <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
+              <Link href="/season-of-singing" className="text-[#FF3700] hover:text-white transition-colors">
+                Apply for Season of Singing
+              </Link>
               <Link href="/musician-pre-register" className="hover:text-white transition-colors">
                 Founding Musician Registration
               </Link>

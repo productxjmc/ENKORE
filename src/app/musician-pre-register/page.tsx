@@ -9,9 +9,7 @@ import { CHRISTIAN_GENRE_OPTIONS } from "@/lib/validation/musicianPreRegistratio
 
 // Ported from the Base44 app's src/pages/MusicianPreRegister.jsx. This is
 // the paid "Founding Musician" track (R1,000 upfront, platform equity,
-// board representation) — distinct from the free/open First Fruits tier
-// at /first-fruits, per the notes in "ENKORE Connect — First Fruits
-// Application Copy."
+// board representation).
 //
 // Trimmed for a one-page-view pass: dropped the confirm_artist_name/
 // confirm_email/confirm_phone_number double-entry fields (handleSubmit

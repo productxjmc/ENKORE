@@ -118,9 +118,6 @@ export default function Home() {
               <Link href="/musician-pre-register" className="hover:text-white transition-colors">
                 Founding Musician Registration
               </Link>
-              <Link href="/first-fruits" className="hover:text-white transition-colors">
-                First Fruits Application
-              </Link>
               <Link href="/demo" className="hover:text-white transition-colors">
                 Demo
               </Link>

@@ -33,6 +33,55 @@ type FormState = {
 
 type FieldErrors = Partial<Record<keyof FormState, string>>;
 
+function floatingLabelClasses(hasError: boolean, animated: boolean) {
+  const restColor = hasError ? "text-[#FF3700]" : "text-gray-500";
+  const emptyColor = hasError ? "text-[#FF3700]" : "text-gray-400";
+  const base = `absolute left-4 top-2 text-[10px] font-semibold uppercase tracking-wide pointer-events-none transition-all duration-150 ${restColor}`;
+  if (!animated) return base;
+  return `${base} peer-placeholder-shown:top-1/2 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:text-sm peer-placeholder-shown:font-normal peer-placeholder-shown:normal-case peer-placeholder-shown:tracking-normal peer-placeholder-shown:${emptyColor} peer-placeholder-shown:peer-focus:top-2 peer-placeholder-shown:peer-focus:translate-y-0 peer-placeholder-shown:peer-focus:text-[10px] peer-placeholder-shown:peer-focus:font-semibold peer-placeholder-shown:peer-focus:uppercase peer-placeholder-shown:peer-focus:tracking-wide peer-focus:text-[#FF3700] peer-placeholder-shown:peer-focus:text-[#FF3700]`;
+}
+
+// Hoisted to module scope, not declared inside the page component — a
+// component declared inside another component's body is a NEW function
+// reference every render, so React treats it as a different component
+// type each time and remounts it. For a controlled <input>, that means
+// losing DOM focus after every single keystroke (confirmed live: typing
+// into any field dropped focus after the first character). Fixed by
+// hoisting and threading `errors` through as a prop instead of a closure.
+function Field({
+  label,
+  id,
+  errors,
+  children,
+  hint,
+  animated = true,
+}: {
+  label: string;
+  id: keyof FormState;
+  errors: FieldErrors;
+  children: ReactNode;
+  hint?: string;
+  animated?: boolean;
+}) {
+  return (
+    <div className="flex flex-col gap-1">
+      <div className="relative">
+        {children}
+        <label htmlFor={id} className={floatingLabelClasses(Boolean(errors[id]), animated)}>
+          {label}
+        </label>
+      </div>
+      {errors[id] && (
+        <p className="text-xs text-[#FF3700] flex items-center gap-1 mt-0.5">
+          <span className="w-1 h-1 rounded-full bg-[#FF3700] inline-block" />
+          {errors[id]}
+        </p>
+      )}
+      {hint && !errors[id] && <p className="text-xs text-gray-400 leading-relaxed">{hint}</p>}
+    </div>
+  );
+}
+
 export default function SeasonOfSingingPage() {
   const [form, setForm] = useState<FormState>({
     artistName: "",
@@ -107,46 +156,6 @@ export default function SeasonOfSingingPage() {
       errors[field] ? "border-[#FF3700] ring-2 ring-[#FF3700]/20" : "border-gray-200 hover:border-gray-300"
     }`;
 
-  function floatingLabelClasses(hasError: boolean, animated: boolean) {
-    const restColor = hasError ? "text-[#FF3700]" : "text-gray-500";
-    const emptyColor = hasError ? "text-[#FF3700]" : "text-gray-400";
-    const base = `absolute left-4 top-2 text-[10px] font-semibold uppercase tracking-wide pointer-events-none transition-all duration-150 ${restColor}`;
-    if (!animated) return base;
-    return `${base} peer-placeholder-shown:top-1/2 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:text-sm peer-placeholder-shown:font-normal peer-placeholder-shown:normal-case peer-placeholder-shown:tracking-normal peer-placeholder-shown:${emptyColor} peer-placeholder-shown:peer-focus:top-2 peer-placeholder-shown:peer-focus:translate-y-0 peer-placeholder-shown:peer-focus:text-[10px] peer-placeholder-shown:peer-focus:font-semibold peer-placeholder-shown:peer-focus:uppercase peer-placeholder-shown:peer-focus:tracking-wide peer-focus:text-[#FF3700] peer-placeholder-shown:peer-focus:text-[#FF3700]`;
-  }
-
-  function Field({
-    label,
-    id,
-    children,
-    hint,
-    animated = true,
-  }: {
-    label: string;
-    id: keyof FormState;
-    children: ReactNode;
-    hint?: string;
-    animated?: boolean;
-  }) {
-    return (
-      <div className="flex flex-col gap-1">
-        <div className="relative">
-          {children}
-          <label htmlFor={id} className={floatingLabelClasses(Boolean(errors[id]), animated)}>
-            {label}
-          </label>
-        </div>
-        {errors[id] && (
-          <p className="text-xs text-[#FF3700] flex items-center gap-1 mt-0.5">
-            <span className="w-1 h-1 rounded-full bg-[#FF3700] inline-block" />
-            {errors[id]}
-          </p>
-        )}
-        {hint && !errors[id] && <p className="text-xs text-gray-400 leading-relaxed">{hint}</p>}
-      </div>
-    );
-  }
-
   if (status === "success") {
     return (
       <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center px-5 text-center">
@@ -202,7 +211,7 @@ export default function SeasonOfSingingPage() {
         <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-2xl shadow-black/40 overflow-hidden">
           <div className="p-6 md:p-8">
             <div className="flex flex-col gap-5">
-              <Field label="Artist / Stage Name *" id="artistName">
+              <Field label="Artist / Stage Name *" id="artistName" errors={errors}>
                 <input
                   id="artistName"
                   value={form.artistName}
@@ -216,7 +225,7 @@ export default function SeasonOfSingingPage() {
                 />
               </Field>
 
-              <Field label="Location" id="location">
+              <Field label="Location" id="location" errors={errors}>
                 <input
                   id="location"
                   value={form.location}
@@ -226,7 +235,7 @@ export default function SeasonOfSingingPage() {
                 />
               </Field>
 
-              <Field label="Link to One Song *" id="songLink" hint="Spotify, YouTube, or a voice note — whatever you've got">
+              <Field label="Link to One Song *" id="songLink" errors={errors} hint="Spotify, YouTube, or a voice note — whatever you've got">
                 <input
                   id="songLink"
                   value={form.songLink}
@@ -236,7 +245,7 @@ export default function SeasonOfSingingPage() {
                 />
               </Field>
 
-              <Field label="Gospel Genre" id="christianGenre" animated={false}>
+              <Field label="Gospel Genre" id="christianGenre" errors={errors} animated={false}>
                 <select
                   id="christianGenre"
                   value={form.christianGenre}
@@ -252,7 +261,7 @@ export default function SeasonOfSingingPage() {
                 </select>
               </Field>
 
-              <Field label="Email Address *" id="email">
+              <Field label="Email Address *" id="email" errors={errors}>
                 <input
                   id="email"
                   type="email"
@@ -263,7 +272,7 @@ export default function SeasonOfSingingPage() {
                 />
               </Field>
 
-              <Field label="WhatsApp Number *" id="phoneNumber" hint="Include country code">
+              <Field label="WhatsApp Number *" id="phoneNumber" errors={errors} hint="Include country code">
                 <input
                   id="phoneNumber"
                   type="tel"
@@ -274,7 +283,7 @@ export default function SeasonOfSingingPage() {
                 />
               </Field>
 
-              <Field label="Short Bio" id="bio" hint="Optional — 2-3 sentences" animated={false}>
+              <Field label="Short Bio" id="bio" errors={errors} hint="Optional — 2-3 sentences" animated={false}>
                 <textarea
                   id="bio"
                   value={form.bio}
@@ -284,7 +293,7 @@ export default function SeasonOfSingingPage() {
                 />
               </Field>
 
-              <Field label="How did you hear about Season of Singing?" id="howHeard" animated={false}>
+              <Field label="How did you hear about Season of Singing?" id="howHeard" errors={errors} animated={false}>
                 <select
                   id="howHeard"
                   value={form.howHeard}

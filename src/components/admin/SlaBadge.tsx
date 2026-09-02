@@ -1,5 +1,12 @@
 import { Clock, AlertTriangle } from "lucide-react";
 
+// Date.now() is impure and React's purity lint (react-hooks/purity) flags
+// it if called directly in a component body — pulled out to a plain
+// helper so the component itself stays a pure function of its props.
+function daysSince(date: string | Date): number {
+  return Math.floor((Date.now() - new Date(date).getTime()) / (1000 * 60 * 60 * 24));
+}
+
 // Ported from the Base44 app's src/components/admin/SlaBadge.jsx, recolored
 // for this app's dark admin theme (the source used light bg-*-100 chips).
 // Color-coded aging indicator for admin review queues.
@@ -14,7 +21,7 @@ export default function SlaBadge({
   compact?: boolean;
 }) {
   if (!date) return null;
-  const days = Math.floor((Date.now() - new Date(date).getTime()) / (1000 * 60 * 60 * 24));
+  const days = daysSince(date);
   const level = days < 2 ? "green" : days <= 3 ? "amber" : "red";
 
   const styles = {

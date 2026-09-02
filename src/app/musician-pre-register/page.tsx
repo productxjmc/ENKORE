@@ -37,6 +37,59 @@ type FormState = {
 
 type FieldErrors = Partial<Record<keyof FormState, string>>;
 
+// animated fields (plain inputs) float from a placeholder-like resting
+// position; select/textarea can't use :placeholder-shown the same way,
+// so their label just sits permanently in the floated position.
+function floatingLabelClasses(hasError: boolean, animated: boolean) {
+  const restColor = hasError ? "text-[#FF3700]" : "text-gray-500";
+  const emptyColor = hasError ? "text-[#FF3700]" : "text-gray-400";
+  const base = `absolute left-4 top-2 text-[10px] font-semibold uppercase tracking-wide pointer-events-none transition-all duration-150 ${restColor}`;
+  if (!animated) return base;
+  return `${base} peer-placeholder-shown:top-1/2 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:text-sm peer-placeholder-shown:font-normal peer-placeholder-shown:normal-case peer-placeholder-shown:tracking-normal peer-placeholder-shown:${emptyColor} peer-placeholder-shown:peer-focus:top-2 peer-placeholder-shown:peer-focus:translate-y-0 peer-placeholder-shown:peer-focus:text-[10px] peer-placeholder-shown:peer-focus:font-semibold peer-placeholder-shown:peer-focus:uppercase peer-placeholder-shown:peer-focus:tracking-wide peer-focus:text-[#FF3700] peer-placeholder-shown:peer-focus:text-[#FF3700]`;
+}
+
+// Hoisted to module scope, not declared inside the page component — a
+// component declared inside another component's body is a NEW function
+// reference every render, so React treats it as a different component
+// type each time and remounts it. For a controlled <input>, that means
+// losing DOM focus after every single keystroke (confirmed live on the
+// identical pattern in season-of-singing/page.tsx: typing into any field
+// dropped focus after the first character). Fixed by hoisting and
+// threading `errors` through as a prop instead of a closure.
+function Field({
+  label,
+  id,
+  errors,
+  children,
+  hint,
+  animated = true,
+}: {
+  label: string;
+  id: keyof FormState;
+  errors: FieldErrors;
+  children: ReactNode;
+  hint?: string;
+  animated?: boolean;
+}) {
+  return (
+    <div className="flex flex-col gap-1">
+      <div className="relative">
+        {children}
+        <label htmlFor={id} className={floatingLabelClasses(Boolean(errors[id]), animated)}>
+          {label}
+        </label>
+      </div>
+      {errors[id] && (
+        <p className="text-xs text-[#FF3700] flex items-center gap-1 mt-0.5">
+          <span className="w-1 h-1 rounded-full bg-[#FF3700] inline-block" />
+          {errors[id]}
+        </p>
+      )}
+      {hint && !errors[id] && <p className="text-xs text-gray-400 leading-relaxed">{hint}</p>}
+    </div>
+  );
+}
+
 export default function MusicianPreRegisterPage() {
   const router = useRouter();
   const [step, setStep] = useState(1);
@@ -155,49 +208,6 @@ export default function MusicianPreRegisterPage() {
       errors[field] ? "border-[#FF3700] ring-2 ring-[#FF3700]/20" : "border-gray-200 hover:border-gray-300"
     }`;
 
-  // animated fields (plain inputs) float from a placeholder-like resting
-  // position; select/textarea can't use :placeholder-shown the same way,
-  // so their label just sits permanently in the floated position.
-  function floatingLabelClasses(hasError: boolean, animated: boolean) {
-    const restColor = hasError ? "text-[#FF3700]" : "text-gray-500";
-    const emptyColor = hasError ? "text-[#FF3700]" : "text-gray-400";
-    const base = `absolute left-4 top-2 text-[10px] font-semibold uppercase tracking-wide pointer-events-none transition-all duration-150 ${restColor}`;
-    if (!animated) return base;
-    return `${base} peer-placeholder-shown:top-1/2 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:text-sm peer-placeholder-shown:font-normal peer-placeholder-shown:normal-case peer-placeholder-shown:tracking-normal peer-placeholder-shown:${emptyColor} peer-placeholder-shown:peer-focus:top-2 peer-placeholder-shown:peer-focus:translate-y-0 peer-placeholder-shown:peer-focus:text-[10px] peer-placeholder-shown:peer-focus:font-semibold peer-placeholder-shown:peer-focus:uppercase peer-placeholder-shown:peer-focus:tracking-wide peer-focus:text-[#FF3700] peer-placeholder-shown:peer-focus:text-[#FF3700]`;
-  }
-
-  function Field({
-    label,
-    id,
-    children,
-    hint,
-    animated = true,
-  }: {
-    label: string;
-    id: keyof FormState;
-    children: ReactNode;
-    hint?: string;
-    animated?: boolean;
-  }) {
-    return (
-      <div className="flex flex-col gap-1">
-        <div className="relative">
-          {children}
-          <label htmlFor={id} className={floatingLabelClasses(Boolean(errors[id]), animated)}>
-            {label}
-          </label>
-        </div>
-        {errors[id] && (
-          <p className="text-xs text-[#FF3700] flex items-center gap-1 mt-0.5">
-            <span className="w-1 h-1 rounded-full bg-[#FF3700] inline-block" />
-            {errors[id]}
-          </p>
-        )}
-        {hint && !errors[id] && <p className="text-xs text-gray-400 leading-relaxed">{hint}</p>}
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-[#0A0A0A] overflow-x-hidden">
       <div className="max-w-2xl mx-auto px-5">
@@ -260,7 +270,7 @@ export default function MusicianPreRegisterPage() {
               <h2 className="text-xl font-black text-gray-900 mb-5">Your Musician Profile</h2>
 
               <div className="flex flex-col gap-5">
-                <Field label="Musician / Stage Name *" id="artist_name">
+                <Field label="Musician / Stage Name *" id="artist_name" errors={errors}>
                   <input
                     id="artist_name"
                     value={form.artist_name}
@@ -274,7 +284,7 @@ export default function MusicianPreRegisterPage() {
                   />
                 </Field>
 
-                <Field label="Location" id="location">
+                <Field label="Location" id="location" errors={errors}>
                   <input
                     id="location"
                     value={form.location}
@@ -284,7 +294,7 @@ export default function MusicianPreRegisterPage() {
                   />
                 </Field>
 
-                <Field label="Gospel Genre" id="christian_genre" animated={false}>
+                <Field label="Gospel Genre" id="christian_genre" errors={errors} animated={false}>
                   <select
                     id="christian_genre"
                     value={form.christian_genre}
@@ -300,7 +310,7 @@ export default function MusicianPreRegisterPage() {
                   </select>
                 </Field>
 
-                <Field label="Spotify / YouTube Link" id="spotify_url" hint="Optional">
+                <Field label="Spotify / YouTube Link" id="spotify_url" errors={errors} hint="Optional">
                   <input
                     id="spotify_url"
                     type="url"
@@ -311,7 +321,7 @@ export default function MusicianPreRegisterPage() {
                   />
                 </Field>
 
-                <Field label="Tell Us About Yourself" id="bio" hint="Optional" animated={false}>
+                <Field label="Tell Us About Yourself" id="bio" errors={errors} hint="Optional" animated={false}>
                   <textarea
                     id="bio"
                     value={form.bio}
@@ -338,7 +348,7 @@ export default function MusicianPreRegisterPage() {
               <h2 className="text-xl font-black text-gray-900 mb-5">Contact Details</h2>
 
               <div className="flex flex-col gap-5">
-                <Field label="Email Address *" id="email">
+                <Field label="Email Address *" id="email" errors={errors}>
                   <input
                     id="email"
                     type="email"
@@ -349,7 +359,7 @@ export default function MusicianPreRegisterPage() {
                   />
                 </Field>
 
-                <Field label="WhatsApp Number *" id="phone_number" hint="Include country code">
+                <Field label="WhatsApp Number *" id="phone_number" errors={errors} hint="Include country code">
                   <input
                     id="phone_number"
                     type="tel"
@@ -416,7 +426,7 @@ export default function MusicianPreRegisterPage() {
                   </p>
                 </div>
 
-                <Field label="Referral / Affiliate Code" id="discount_code" hint="Optional">
+                <Field label="Referral / Affiliate Code" id="discount_code" errors={errors} hint="Optional">
                   <input
                     id="discount_code"
                     value={form.discount_code}

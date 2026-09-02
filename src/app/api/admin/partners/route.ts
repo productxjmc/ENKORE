@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getCurrentAppUser, withCurrentUser } from "@/lib/auth";
+import { toPlain } from "@/lib/serialize";
 
 // Admin-only list + manual-create for the Partner Program. Runs under the
 // caller's own (admin) RLS context via withCurrentUser, not withServiceRole
@@ -13,7 +14,10 @@ export async function GET() {
 
   const affiliates = await withCurrentUser((tx) => tx.affiliate.findMany({ orderBy: { createdAt: "desc" } }));
 
-  return NextResponse.json({ affiliates });
+  // toPlain() converts Decimal fields to real numbers — Decimal's own
+  // toJSON() serializes them as strings, which would silently diverge from
+  // the PlainAffiliate[] shape page.tsx's server-rendered initial list uses.
+  return NextResponse.json({ affiliates: toPlain(affiliates) });
 }
 
 // Ported from the Base44 app's AdminAffiliates.jsx createAffiliateMutation —
@@ -58,5 +62,5 @@ export async function POST(req: NextRequest) {
   if (result.status !== 201) {
     return NextResponse.json({ error: result.error }, { status: result.status });
   }
-  return NextResponse.json({ affiliate: result.affiliate }, { status: 201 });
+  return NextResponse.json({ affiliate: toPlain(result.affiliate) }, { status: 201 });
 }

@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getCurrentAppUser, withCurrentUser } from "@/lib/auth";
+import { toPlain } from "@/lib/serialize";
 
 type Action = "approve_ministry" | "reject" | "promote" | "set_status";
 
@@ -65,7 +66,9 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
   if (result.status !== 200) {
     return NextResponse.json({ error: result.error }, { status: result.status });
   }
-  return NextResponse.json({ affiliate: result.affiliate });
+  // toPlain() converts Decimal fields to real numbers — see the note in
+  // src/app/api/admin/partners/route.ts.
+  return NextResponse.json({ affiliate: toPlain(result.affiliate) });
 }
 
 export async function DELETE(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {

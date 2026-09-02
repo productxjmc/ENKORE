@@ -97,3 +97,9 @@ body {
 
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Ported from the Base44 app's src/globals.css alongside the new hero
+   design — used by HeroIntroPopup's header band and CTA button. */
+.enkore-orange-gradient {
+  background: linear-gradient(135deg, #FF3700 0%, #FF5C33 100%);
+}

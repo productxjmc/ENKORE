@@ -14,8 +14,10 @@ import { GEO_COOKIE, normalizeCountry } from "@/lib/geo";
 const isProtectedRoute = createRouteMatcher([
   "/dashboard(/.*)?",
   "/admin(/.*)?",
+  "/partners(/.*)?",
   "/api/musician(/.*)?",
   "/api/admin(/.*)?",
+  "/api/partners/activate",
 ]);
 
 // Next.js 16 renamed Middleware to Proxy — this file must be named

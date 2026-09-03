@@ -10,7 +10,7 @@ import { getCurrentAppUser, withCurrentUser } from "@/lib/auth";
 // browser -> Blob directly; this route's only job is minting a short-lived,
 // scoped upload token after verifying the caller actually owns the
 // musicianId they're uploading into.
-export type UploadKind = "track_audio" | "track_cover" | "profile_image" | "id_document" | "bank_confirmation" | "press_photo";
+export type UploadKind = "track_audio" | "track_cover" | "profile_image" | "id_document" | "bank_confirmation" | "press_photo" | "fan_import";
 
 const UPLOAD_LIMITS: Record<UploadKind, { contentTypes: string[]; maxBytes: number }> = {
   track_audio: { contentTypes: ["audio/mpeg", "audio/mp3", "audio/wav", "audio/x-wav"], maxBytes: 50 * 1024 * 1024 },
@@ -19,6 +19,26 @@ const UPLOAD_LIMITS: Record<UploadKind, { contentTypes: string[]; maxBytes: numb
   id_document: { contentTypes: ["image/jpeg", "image/png", "application/pdf"], maxBytes: 10 * 1024 * 1024 },
   bank_confirmation: { contentTypes: ["image/jpeg", "image/png", "application/pdf"], maxBytes: 10 * 1024 * 1024 },
   press_photo: { contentTypes: ["image/jpeg", "image/png", "image/webp"], maxBytes: 5 * 1024 * 1024 },
+  // CSV/PDF/DOCX fan-list uploads (src/app/dashboard/import-fans) — text
+  // documents, not media, but still routed through the same client-upload
+  // pattern since a large CSV or scanned-PDF fan list can exceed the
+  // ~4.5MB serverless body cap just like audio does. The actual parse
+  // step (src/lib/fanImport.ts) dispatches on the filename's extension,
+  // not the browser-reported MIME type — CSV in particular gets reported
+  // inconsistently (empty string, text/plain, application/vnd.ms-excel,
+  // application/octet-stream) across browsers/OSes, so this list is a
+  // coarse sanity check, not the source of truth for parsing.
+  fan_import: {
+    contentTypes: [
+      "text/csv",
+      "text/plain",
+      "application/vnd.ms-excel",
+      "application/pdf",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "application/octet-stream",
+    ],
+    maxBytes: 10 * 1024 * 1024,
+  },
 };
 
 export async function POST(req: NextRequest) {

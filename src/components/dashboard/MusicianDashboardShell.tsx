@@ -77,6 +77,12 @@ export default function MusicianDashboardShell({ data }: { data: DashboardData }
             >
               Events
             </Link>
+            <Link
+              href="/dashboard/import-fans"
+              className="inline-flex items-center gap-1.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-semibold rounded-full px-4 py-2 transition-colors"
+            >
+              Import Fans
+            </Link>
             {musician.storefrontUrl && (
               <Link
                 href="/dashboard/promote"

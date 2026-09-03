@@ -284,6 +284,7 @@ enum FollowSource {
   WEBSITE
   SEARCH
   DIRECT
+  IMPORT
 }
 
 model Follow {

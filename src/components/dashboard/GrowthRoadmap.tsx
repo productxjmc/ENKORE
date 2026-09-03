@@ -1,28 +1,27 @@
 "use client";
 
 import Link from "next/link";
-import { CheckCircle2, Circle, ArrowRight, Rocket, Music, Wallet, Users, TrendingUp } from "lucide-react";
+import { CheckCircle2, Circle, ArrowRight, Rocket, Music, Wallet, Users, TrendingUp, ShoppingBag } from "lucide-react";
 
 export type GrowthRoadmapData = {
   requirementsApproved: boolean;
   payoutComplete: boolean;
   tracksCount: number;
+  merchCount: number;
   isLive: boolean;
   followersCount: number;
   salesCount: number;
 };
 
-// Ported from the Base44 app's src/components/dashboard/GrowthRoadmap.jsx —
-// the "list a merchandise item" step is deliberately not included yet:
-// merch management doesn't exist in this rebuild until a later phase, and
-// this app avoids linking to pages that don't exist. Add it back once
-// that phase lands. Links are real hrefs (Next's Link) rather than the
-// source's navigate() callbacks — same information, more idiomatic here.
+// Ported from the Base44 app's src/components/dashboard/GrowthRoadmap.jsx.
+// Links are real hrefs (Next's Link) rather than the source's navigate()
+// callbacks — same information, more idiomatic here.
 export default function GrowthRoadmap({ data }: { data: GrowthRoadmapData }) {
   const steps = [
     { key: "requirements", label: "Submit profile requirements", done: data.requirementsApproved, href: "/dashboard/onboarding", icon: Rocket },
     { key: "payouts", label: "Add your bank & payout details", done: data.payoutComplete, href: "/dashboard/payouts", icon: Wallet },
     { key: "tracks", label: "Upload your first track", done: data.tracksCount > 0, href: "/dashboard/upload-track", icon: Music },
+    { key: "merch", label: "List a merchandise item", done: data.merchCount > 0, href: "/dashboard/merchandise", icon: ShoppingBag },
     { key: "live", label: "Launch your storefront (go live)", done: data.isLive, href: "/dashboard", icon: Rocket },
     { key: "fans", label: "Get your first 5 followers", done: data.followersCount >= 5, href: "/dashboard", icon: Users },
     { key: "sales", label: "Make your first sale", done: data.salesCount > 0, href: "/dashboard", icon: TrendingUp },

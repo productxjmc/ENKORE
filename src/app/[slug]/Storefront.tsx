@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import type { Musician, Track } from "@prisma/client";
+import type { Musician, Track, Merchandise } from "@prisma/client";
 import { Music, MapPin, Link2, Play, Download, DollarSign, MessageSquare, ShoppingBag, Heart, Calendar } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ActionButton from "@/components/common/ActionButton";
 import CurrencySelector from "@/components/CurrencySelector";
 import { useCurrency } from "@/lib/useCurrency";
-import { formatFromZar, convertFromZar, CURRENCIES } from "@/lib/pricingConfig";
+import { formatFromZar, formatAmount, convertFromZar, CURRENCIES } from "@/lib/pricingConfig";
 
 type SocialLinks = { instagram?: string; twitter?: string; facebook?: string };
 
@@ -24,6 +24,12 @@ export type PlainTrack = Omit<Track, "basePrice" | "minimumPrice" | "revenueGene
   minimumPrice: number;
   revenueGenerated: number;
 };
+export type PlainMerchandise = Omit<Merchandise, "priceZar" | "priceNgn" | "priceUsd" | "revenueGenerated"> & {
+  priceZar: number | null;
+  priceNgn: number | null;
+  priceUsd: number | null;
+  revenueGenerated: number;
+};
 
 // Client half of the storefront — needs the currency hook (localStorage/
 // geo-IP) and tab state, so it can't be a server component. Scoped down
@@ -31,7 +37,7 @@ export type PlainTrack = Omit<Track, "basePrice" | "minimumPrice" | "revenueGene
 // tabs are honest placeholders (Stages 5, 6, 4) rather than faked.
 // "Buy Track" now opens a real Payfast checkout (Stage 9) — see
 // TrackCheckout below.
-export function Storefront({ musician, tracks }: { musician: PlainMusician; tracks: PlainTrack[] }) {
+export function Storefront({ musician, tracks, merchandise }: { musician: PlainMusician; tracks: PlainTrack[]; merchandise: PlainMerchandise[] }) {
   const { currency } = useCurrency();
   const social = (musician.socialLinks as SocialLinks | null) ?? null;
 
@@ -146,7 +152,7 @@ export function Storefront({ musician, tracks }: { musician: PlainMusician; trac
             </TabsTrigger>
             <TabsTrigger value="merch" className="rounded-full px-6 py-2 data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-300">
               <ShoppingBag className="w-4 h-4 mr-2" />
-              Merch
+              Merch {merchandise.length > 0 && `(${merchandise.length})`}
             </TabsTrigger>
             <TabsTrigger value="bookings" className="rounded-full px-6 py-2 data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-300">
               <Calendar className="w-4 h-4 mr-2" />
@@ -171,7 +177,15 @@ export function Storefront({ musician, tracks }: { musician: PlainMusician; trac
           </TabsContent>
 
           <TabsContent value="merch">
-            <ComingSoon icon={ShoppingBag} text={`Merchandise from ${musician.musicianName} is coming soon.`} />
+            {merchandise.length === 0 ? (
+              <ComingSoon icon={ShoppingBag} text={`${musician.musicianName} hasn't listed any merchandise yet.`} />
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {merchandise.map((item) => (
+                  <MerchTile key={item.id} item={item} currency={currency} />
+                ))}
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="bookings">
@@ -390,6 +404,153 @@ function TrackCheckout({
       <p className="text-[11px] text-gray-400 text-center">
         Charged in {checkoutCurrency} via {gateway === "kyshi" ? "Kyshi" : "Payfast"}, regardless of the currency shown above.
       </p>
+    </form>
+  );
+}
+
+// Merch has direct per-currency fields (priceZar/priceNgn/priceUsd) rather
+// than a single ZAR base musicians set once — unlike tracks, so this picks
+// the field for the selected currency, falling back to converting from
+// ZAR (same convertFromZar the rest of this page already uses) only when
+// the musician hasn't set that specific currency's price.
+function merchPriceFor(item: PlainMerchandise, currency: ReturnType<typeof useCurrency>["currency"]): number | null {
+  if (currency === "ZAR") return item.priceZar;
+  if (currency === "NGN") return item.priceNgn ?? (item.priceZar != null ? convertFromZar(item.priceZar, "NGN") : null);
+  if (currency === "USD") return item.priceUsd ?? (item.priceZar != null ? convertFromZar(item.priceZar, "USD") : null);
+  return item.priceZar != null ? convertFromZar(item.priceZar, currency) : null;
+}
+
+function MerchTile({ item, currency }: { item: PlainMerchandise; currency: ReturnType<typeof useCurrency>["currency"] }) {
+  const [ordering, setOrdering] = useState(false);
+  const price = merchPriceFor(item, currency);
+  const inStock = item.isOnDemand || item.stockQuantity > 0;
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.2 }} transition={{ duration: 0.4 }}>
+      <Card className="hover:shadow-xl transition-shadow overflow-hidden group">
+        <div className="relative">
+          {/* eslint-disable-next-line @next/next/no-img-element -- arbitrary musician-uploaded URLs */}
+          <img
+            src={item.imageUrl || "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=600&h=600&fit=crop"}
+            alt={item.name}
+            loading="lazy"
+            className="w-full h-56 object-cover group-hover:scale-105 transition-transform duration-300"
+          />
+          {item.isOnDemand && <span className="absolute top-2 right-2 bg-orange-500 text-white text-xs font-semibold rounded-full px-2.5 py-1">On Demand</span>}
+          {!inStock && (
+            <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+              <span className="text-white font-bold text-lg">Out of Stock</span>
+            </div>
+          )}
+        </div>
+        <CardContent className="p-4">
+          <h3 className="font-bold text-lg mb-1">{item.name}</h3>
+          <p className="text-sm text-gray-500 capitalize mb-2">{item.type.replace("_", " ").toLowerCase()}</p>
+          {item.description && <p className="text-sm text-gray-600 mb-3 line-clamp-2">{item.description}</p>}
+          <div className="flex items-center justify-between">
+            <span className="text-xl font-bold text-orange-600">{price != null ? formatAmount(price, currency) : "—"}</span>
+            {!ordering && (
+              <Button onClick={() => setOrdering(true)} disabled={!inStock || price == null} size="sm" className="bg-black hover:bg-gray-800 text-white">
+                <ShoppingBag className="w-4 h-4 mr-1" /> Order
+              </Button>
+            )}
+          </div>
+          {ordering && <MerchOrder item={item} currency={currency} onCancel={() => setOrdering(false)} />}
+        </CardContent>
+      </Card>
+    </motion.div>
+  );
+}
+
+// The no-online-payment "request" flow — MerchOrderModal.jsx (source) and
+// its createMerchOrder backend function confirmed this directly (not
+// assumed): a fan requests an item and the musician arranges payment/
+// fulfillment afterward, no Payfast/Kyshi checkout involved. Inline-
+// expand on the card rather than the source's Dialog, matching
+// TrackCheckout's already-established pattern on this same page.
+function MerchOrder({ item, currency, onCancel }: { item: PlainMerchandise; currency: ReturnType<typeof useCurrency>["currency"]; onCancel: () => void }) {
+  const [fanName, setFanName] = useState("");
+  const [fanEmail, setFanEmail] = useState("");
+  const [size, setSize] = useState(item.sizes[0] ?? "");
+  const [street, setStreet] = useState("");
+  const [city, setCity] = useState("");
+  const [province, setProvince] = useState("");
+  const [postalCode, setPostalCode] = useState("");
+  const [country, setCountry] = useState("South Africa");
+  const [status, setStatus] = useState<"idle" | "submitting" | "done" | "error">("idle");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!fanName || !fanEmail || !street || !city) {
+      setStatus("error");
+      setErrorMessage("Please fill in all required fields.");
+      return;
+    }
+    setStatus("submitting");
+    setErrorMessage(null);
+    try {
+      const res = await fetch(`/api/merchandise/${item.id}/order`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          quantity: 1,
+          size,
+          fanName,
+          fanEmail,
+          shippingAddress: { street, city, province, postal_code: postalCode, country },
+          currency,
+        }),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body?.error || "Could not place your order. Please try again.");
+      setStatus("done");
+    } catch (err) {
+      setStatus("error");
+      setErrorMessage(err instanceof Error ? err.message : "Please try again.");
+    }
+  };
+
+  const fieldClass = "w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500";
+
+  if (status === "done") {
+    return <p className="mt-4 text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2">Order placed! The musician will be in touch shortly.</p>;
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="mt-4 flex flex-col gap-2.5">
+      <div className="grid grid-cols-2 gap-2">
+        <input type="text" required placeholder="Your name" value={fanName} onChange={(e) => setFanName(e.target.value)} disabled={status === "submitting"} className={fieldClass} />
+        <input type="email" required placeholder="Your email" value={fanEmail} onChange={(e) => setFanEmail(e.target.value)} disabled={status === "submitting"} className={fieldClass} />
+      </div>
+      {item.sizes.length > 0 && (
+        <select value={size} onChange={(e) => setSize(e.target.value)} disabled={status === "submitting"} className={`${fieldClass} cursor-pointer`}>
+          {item.sizes.map((s) => (
+            <option key={s} value={s}>
+              Size {s}
+            </option>
+          ))}
+        </select>
+      )}
+      <input type="text" required placeholder="Street address *" value={street} onChange={(e) => setStreet(e.target.value)} disabled={status === "submitting"} className={fieldClass} />
+      <div className="grid grid-cols-2 gap-2">
+        <input type="text" required placeholder="City *" value={city} onChange={(e) => setCity(e.target.value)} disabled={status === "submitting"} className={fieldClass} />
+        <input type="text" placeholder="Province" value={province} onChange={(e) => setProvince(e.target.value)} disabled={status === "submitting"} className={fieldClass} />
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <input type="text" placeholder="Postal code" value={postalCode} onChange={(e) => setPostalCode(e.target.value)} disabled={status === "submitting"} className={fieldClass} />
+        <input type="text" placeholder="Country" value={country} onChange={(e) => setCountry(e.target.value)} disabled={status === "submitting"} className={fieldClass} />
+      </div>
+      {errorMessage && <p className="text-xs text-red-600">{errorMessage}</p>}
+      <div className="flex gap-2">
+        <Button type="button" variant="outline" onClick={onCancel} disabled={status === "submitting"} className="flex-1">
+          Cancel
+        </Button>
+        <Button type="submit" disabled={status === "submitting"} className="flex-1 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white">
+          {status === "submitting" ? "Placing order…" : "Place Order"}
+        </Button>
+      </div>
+      <p className="text-[11px] text-gray-400 text-center">No payment now — the musician will contact you directly to arrange it.</p>
     </form>
   );
 }

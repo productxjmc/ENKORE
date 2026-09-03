@@ -64,7 +64,13 @@ export default function MusicianDashboardShell({ data }: { data: DashboardData }
             <p className="font-bold text-gray-900">{musician.musicianName}</p>
             {musician.storefrontUrl && <p className="text-xs text-gray-500">enkore.co.za/{musician.storefrontUrl}</p>}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <Link
+              href="/dashboard/merchandise"
+              className="inline-flex items-center gap-1.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-semibold rounded-full px-4 py-2 transition-colors"
+            >
+              Merchandise
+            </Link>
             <Link
               href="/dashboard/payouts"
               className="inline-flex items-center gap-1.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-semibold rounded-full px-4 py-2 transition-colors"

@@ -52,15 +52,23 @@ export default function MusicianDashboardShell({ data }: { data: DashboardData }
             <p className="font-bold text-gray-900">{musician.musicianName}</p>
             {musician.storefrontUrl && <p className="text-xs text-gray-500">enkore.co.za/{musician.storefrontUrl}</p>}
           </div>
-          {musician.storefrontUrl && (
+          <div className="flex items-center gap-2">
             <Link
-              href={`/${musician.storefrontUrl}`}
-              target="_blank"
-              className="inline-flex items-center gap-1.5 bg-gray-900 hover:bg-gray-800 text-white text-xs font-semibold rounded-full px-4 py-2 transition-colors"
+              href="/dashboard/payouts"
+              className="inline-flex items-center gap-1.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-semibold rounded-full px-4 py-2 transition-colors"
             >
-              <Eye className="w-3.5 h-3.5" /> Preview Storefront
+              Payouts &amp; Earnings
             </Link>
-          )}
+            {musician.storefrontUrl && (
+              <Link
+                href={`/${musician.storefrontUrl}`}
+                target="_blank"
+                className="inline-flex items-center gap-1.5 bg-gray-900 hover:bg-gray-800 text-white text-xs font-semibold rounded-full px-4 py-2 transition-colors"
+              >
+                <Eye className="w-3.5 h-3.5" /> Preview Storefront
+              </Link>
+            )}
+          </div>
         </div>
       </header>
 
@@ -84,7 +92,22 @@ export default function MusicianDashboardShell({ data }: { data: DashboardData }
             <XCircle className="w-5 h-5 text-red-600 mt-0.5 shrink-0" />
             <div>
               <p className="font-semibold text-red-800 text-sm">Changes requested</p>
-              <p className="text-sm text-red-700">{musician.requirementsNotes || "Please review and resubmit your documents."}</p>
+              <p className="text-sm text-red-700 mb-2">{musician.requirementsNotes || "Please review and resubmit your documents."}</p>
+              <Link href="/dashboard/onboarding" className="text-sm font-semibold text-red-800 underline">
+                Go to Checklist →
+              </Link>
+            </div>
+          </div>
+        )}
+        {musician.requirementsStatus === "NONE" && (
+          <div className="mb-6 flex items-start gap-3 bg-orange-50 border border-orange-200 rounded-xl p-4">
+            <Clock className="w-5 h-5 text-orange-500 mt-0.5 shrink-0" />
+            <div>
+              <p className="font-semibold text-orange-800 text-sm">Finish setting up your profile</p>
+              <p className="text-sm text-orange-700 mb-2">Submit your ID, bank confirmation, and press photo to get your storefront reviewed.</p>
+              <Link href="/dashboard/onboarding" className="text-sm font-semibold text-orange-800 underline">
+                Go to Checklist →
+              </Link>
             </div>
           </div>
         )}

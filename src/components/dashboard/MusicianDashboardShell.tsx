@@ -10,6 +10,8 @@ import SalesBreakdown from "@/components/dashboard/SalesBreakdown";
 import TrackManagement from "@/components/dashboard/TrackManagement";
 import GoalsSection from "@/components/dashboard/GoalsSection";
 import type { PlainGoal } from "@/components/dashboard/GoalList";
+import AvailabilityManager from "@/components/dashboard/AvailabilityManager";
+import BookingEnquiriesList, { type PlainBookingEnquiry } from "@/components/dashboard/BookingEnquiriesList";
 
 // Decimal fields become plain numbers after page.tsx's toPlain() — see
 // src/lib/serialize.ts, same pattern as PartnerDashboard's PlainAffiliate.
@@ -24,6 +26,7 @@ export type DashboardData = {
   musician: PlainMusician;
   tracks: PlainTrack[];
   goals: PlainGoal[];
+  bookingEnquiries: PlainBookingEnquiry[];
   stats: {
     totalRevenue: number;
     totalTracks: number;
@@ -45,7 +48,7 @@ export type DashboardData = {
 // a deliberate departure from the dark brand used on /partners and the
 // storefront — see the plan's locked design decision.
 export default function MusicianDashboardShell({ data }: { data: DashboardData }) {
-  const { musician, tracks, goals, stats, salesBreakdown, recentActivity } = data;
+  const { musician, tracks, goals, bookingEnquiries, stats, salesBreakdown, recentActivity } = data;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -167,6 +170,14 @@ export default function MusicianDashboardShell({ data }: { data: DashboardData }
         </div>
 
         <GoalsSection goals={goals} />
+
+        <div className="mb-6 md:mb-8">
+          <h2 className="text-lg font-bold text-gray-900 mb-4">Bookings &amp; Availability</h2>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+            <AvailabilityManager />
+            <BookingEnquiriesList enquiries={bookingEnquiries} />
+          </div>
+        </div>
       </main>
     </div>
   );

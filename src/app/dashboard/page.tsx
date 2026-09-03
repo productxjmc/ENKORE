@@ -36,20 +36,21 @@ export default async function DashboardPage() {
     const musician = await tx.musician.findFirst({ where: { OR: [{ userId: user.id }, { email: user.email }] } });
     if (!musician) return null;
 
-    const [tracks, purchases, follows, messages, goals] = await Promise.all([
+    const [tracks, purchases, follows, messages, goals, bookingEnquiries] = await Promise.all([
       tx.track.findMany({ where: { musicianId: musician.id }, orderBy: { downloadsCount: "desc" } }),
       tx.purchase.findMany({ where: { musicianId: musician.id }, orderBy: { createdAt: "desc" }, take: 50 }),
       tx.follow.findMany({ where: { musicianId: musician.id }, orderBy: { createdAt: "desc" } }),
       tx.message.findMany({ where: { musicianId: musician.id, senderType: "FAN" }, orderBy: { createdAt: "desc" }, take: 20 }),
       tx.goal.findMany({ where: { musicianId: musician.id }, orderBy: { createdAt: "desc" } }),
+      tx.bookingEnquiry.findMany({ where: { musicianId: musician.id }, orderBy: { createdAt: "desc" } }),
     ]);
 
-    return { musician, tracks, purchases, follows, messages, goals };
+    return { musician, tracks, purchases, follows, messages, goals, bookingEnquiries };
   });
 
   if (!data) redirect("/musician-pre-register");
 
-  const { musician, tracks, purchases, follows, messages, goals } = data;
+  const { musician, tracks, purchases, follows, messages, goals, bookingEnquiries } = data;
 
   const { oneWeekAgo, twoWeeksAgo, oneDayAgo } = dateBounds();
 
@@ -102,6 +103,7 @@ export default async function DashboardPage() {
     musician,
     tracks,
     goals,
+    bookingEnquiries,
     stats: {
       totalRevenue: Number(musician.totalRevenue),
       totalTracks: tracks.length,

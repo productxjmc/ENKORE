@@ -12,8 +12,15 @@ import { Storefront, type PlainMusician, type PlainTrack, type PlainMerchandise,
 // payment request flow (see MerchOrder in Storefront.tsx). Bookings and
 // the fan wall still depend on stages that don't exist yet — rather than
 // fake them, those tabs say so plainly.
-export default async function MusicianStorefrontPage({ params }: { params: Promise<{ slug: string }> }) {
+export default async function MusicianStorefrontPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<{ tab?: string }>;
+}) {
   const { slug } = await params;
+  const { tab } = await searchParams;
 
   const musician = await withCurrentUser((tx) => tx.musician.findUnique({ where: { storefrontUrl: slug } }));
 
@@ -43,6 +50,7 @@ export default async function MusicianStorefrontPage({ params }: { params: Promi
       tracks={toPlain<PlainTrack[]>(tracks)}
       merchandise={toPlain<PlainMerchandise[]>(merchandise)}
       events={toPlain<PlainEvent[]>(events)}
+      initialTab={tab}
     />
   );
 }

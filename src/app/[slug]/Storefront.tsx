@@ -38,9 +38,34 @@ export type PlainEvent = Omit<Event, "ticketPrice" | "revenueGenerated"> & { tic
 // tabs are honest placeholders (Stages 5, 6, 4) rather than faked.
 // "Buy Track" now opens a real Payfast checkout (Stage 9) — see
 // TrackCheckout below.
-export function Storefront({ musician, tracks, merchandise, events }: { musician: PlainMusician; tracks: PlainTrack[]; merchandise: PlainMerchandise[]; events: PlainEvent[] }) {
+const VALID_TABS = ["music", "merch", "events", "bookings"];
+
+// Ported the tab-restore for QR-code deep links (StorefrontQRGenerator.
+// tsx's ?tab=music / ?tab=merch) to read from `initialTab`, a plain prop
+// computed server-side in page.tsx (searchParams is already available to
+// every Next.js page). Two client-only approaches were tried and rejected
+// first: a lazy useState(() => window.location...) initializer causes a
+// hydration mismatch (window exists on the client's first render too,
+// so it diverges from the server's window-less render), and applying it
+// via a mount-time useEffect instead trips react-hooks/set-state-in-effect
+// and still leaves the wrong tab visible for one paint. Reading it
+// server-side sidesteps both.
+export function Storefront({
+  musician,
+  tracks,
+  merchandise,
+  events,
+  initialTab,
+}: {
+  musician: PlainMusician;
+  tracks: PlainTrack[];
+  merchandise: PlainMerchandise[];
+  events: PlainEvent[];
+  initialTab?: string;
+}) {
   const { currency } = useCurrency();
   const social = (musician.socialLinks as SocialLinks | null) ?? null;
+  const [activeTab, setActiveTab] = useState(initialTab && VALID_TABS.includes(initialTab) ? initialTab : "music");
 
   return (
     <div className="min-h-screen bg-gray-50 pb-0">
@@ -145,7 +170,7 @@ export function Storefront({ musician, tracks, merchandise, events }: { musician
         <div className="flex justify-end mb-4">
           <CurrencySelector />
         </div>
-        <Tabs defaultValue="music">
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="mb-8 bg-black text-white rounded-full px-1 py-1 w-auto inline-flex">
             <TabsTrigger value="music" className="rounded-full px-6 py-2 data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-300">
               <Music className="w-4 h-4 mr-2" />

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import type { Musician, Track, Merchandise } from "@prisma/client";
+import type { Musician, Track, Merchandise, Event } from "@prisma/client";
 import { Music, MapPin, Link2, Play, Download, DollarSign, MessageSquare, ShoppingBag, Heart, Calendar } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -30,6 +30,7 @@ export type PlainMerchandise = Omit<Merchandise, "priceZar" | "priceNgn" | "pric
   priceUsd: number | null;
   revenueGenerated: number;
 };
+export type PlainEvent = Omit<Event, "ticketPrice" | "revenueGenerated"> & { ticketPrice: number; revenueGenerated: number };
 
 // Client half of the storefront — needs the currency hook (localStorage/
 // geo-IP) and tab state, so it can't be a server component. Scoped down
@@ -37,7 +38,7 @@ export type PlainMerchandise = Omit<Merchandise, "priceZar" | "priceNgn" | "pric
 // tabs are honest placeholders (Stages 5, 6, 4) rather than faked.
 // "Buy Track" now opens a real Payfast checkout (Stage 9) — see
 // TrackCheckout below.
-export function Storefront({ musician, tracks, merchandise }: { musician: PlainMusician; tracks: PlainTrack[]; merchandise: PlainMerchandise[] }) {
+export function Storefront({ musician, tracks, merchandise, events }: { musician: PlainMusician; tracks: PlainTrack[]; merchandise: PlainMerchandise[]; events: PlainEvent[] }) {
   const { currency } = useCurrency();
   const social = (musician.socialLinks as SocialLinks | null) ?? null;
 
@@ -154,6 +155,10 @@ export function Storefront({ musician, tracks, merchandise }: { musician: PlainM
               <ShoppingBag className="w-4 h-4 mr-2" />
               Merch {merchandise.length > 0 && `(${merchandise.length})`}
             </TabsTrigger>
+            <TabsTrigger value="events" className="rounded-full px-6 py-2 data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-300">
+              <Calendar className="w-4 h-4 mr-2" />
+              Events {events.length > 0 && `(${events.length})`}
+            </TabsTrigger>
             <TabsTrigger value="bookings" className="rounded-full px-6 py-2 data-[state=active]:bg-orange-500 data-[state=active]:text-white text-gray-300">
               <Calendar className="w-4 h-4 mr-2" />
               Bookings
@@ -183,6 +188,18 @@ export function Storefront({ musician, tracks, merchandise }: { musician: PlainM
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {merchandise.map((item) => (
                   <MerchTile key={item.id} item={item} currency={currency} />
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="events">
+            {events.length === 0 ? (
+              <ComingSoon icon={Calendar} text={`${musician.musicianName} has no upcoming events right now.`} />
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {events.map((event) => (
+                  <EventTile key={event.id} event={event} musicianCountry={musician.country} currency={currency} />
                 ))}
               </div>
             )}
@@ -551,6 +568,158 @@ function MerchOrder({ item, currency, onCancel }: { item: PlainMerchandise; curr
         </Button>
       </div>
       <p className="text-[11px] text-gray-400 text-center">No payment now — the musician will contact you directly to arrange it.</p>
+    </form>
+  );
+}
+
+// Ticket checkout on the same Payfast/Kyshi one-time-payment pattern as
+// TrackCheckout — see initialize-ticket routes' comments for why Yoco
+// (the source's TicketPurchaseModal.jsx gateway) isn't used.
+function EventTile({ event, musicianCountry, currency }: { event: PlainEvent; musicianCountry: Musician["country"]; currency: ReturnType<typeof useCurrency>["currency"] }) {
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const remaining = event.totalTickets - event.ticketsSold;
+  const soldOut = event.status === "SOLD_OUT" || remaining <= 0;
+  const eventDate = new Date(event.eventDate);
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.2 }} transition={{ duration: 0.4 }}>
+      <Card className="hover:shadow-xl transition-shadow overflow-hidden group">
+        <div className="relative">
+          {/* eslint-disable-next-line @next/next/no-img-element -- arbitrary musician-uploaded URLs */}
+          <img
+            src={event.coverImage || "https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?w=600&h=600&fit=crop"}
+            alt={event.title}
+            loading="lazy"
+            className="w-full h-48 object-cover"
+          />
+          {soldOut && (
+            <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+              <span className="text-white font-bold text-lg">Sold Out</span>
+            </div>
+          )}
+        </div>
+        <CardContent className="p-4">
+          <h3 className="font-bold text-lg mb-1">{event.title}</h3>
+          <p className="text-sm text-gray-500 mb-1">
+            {eventDate.toLocaleDateString(undefined, { weekday: "short", year: "numeric", month: "short", day: "numeric" })} &middot;{" "}
+            {eventDate.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}
+          </p>
+          <div className="flex items-center gap-1 text-gray-500 text-sm mb-2">
+            <MapPin className="w-3.5 h-3.5" /> {event.venue}
+          </div>
+          {event.description && <p className="text-sm text-gray-600 mb-4 line-clamp-2">{event.description}</p>}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1 text-orange-600">
+              <DollarSign className="w-4 h-4" />
+              <span className="font-bold">{formatFromZar(event.ticketPrice, currency)}</span>
+            </div>
+            <span className="text-gray-400 text-sm">{remaining} left</span>
+          </div>
+          {checkoutOpen ? (
+            <TicketCheckout event={event} musicianCountry={musicianCountry} onCancel={() => setCheckoutOpen(false)} />
+          ) : (
+            <Button
+              onClick={() => setCheckoutOpen(true)}
+              disabled={soldOut}
+              className="w-full mt-4 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white"
+            >
+              {soldOut ? "Sold Out" : "Buy Tickets"}
+            </Button>
+          )}
+        </CardContent>
+      </Card>
+    </motion.div>
+  );
+}
+
+function TicketCheckout({ event, musicianCountry, onCancel }: { event: PlainEvent; musicianCountry: Musician["country"]; onCancel: () => void }) {
+  const gateway = musicianCountry === "NIGERIA" ? "kyshi" : "payfast";
+  const remaining = event.totalTickets - event.ticketsSold;
+
+  const [fanName, setFanName] = useState("");
+  const [fanEmail, setFanEmail] = useState("");
+  const [quantity, setQuantity] = useState(1);
+  const [status, setStatus] = useState<"idle" | "submitting" | "error">("idle");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setStatus("submitting");
+    setErrorMessage(null);
+
+    try {
+      const payload = { eventId: event.id, musicianId: event.musicianId, fanEmail, fanName: fanName || undefined, quantity };
+
+      if (gateway === "kyshi") {
+        const res = await fetch("/api/payments/kyshi/initialize-ticket", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const body = await res.json();
+        if (!res.ok) throw new Error(body?.error || "Something went wrong. Please try again.");
+        window.location.href = body.authorizationUrl;
+        return;
+      }
+
+      const res = await fetch("/api/payments/payfast/initialize-ticket", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body?.error || "Something went wrong. Please try again.");
+
+      const form = document.createElement("form");
+      form.method = "POST";
+      form.action = body.paymentUrl;
+      for (const [key, value] of Object.entries(body.paymentData as Record<string, string>)) {
+        const input = document.createElement("input");
+        input.type = "hidden";
+        input.name = key;
+        input.value = value;
+        form.appendChild(input);
+      }
+      document.body.appendChild(form);
+      form.submit();
+    } catch (err) {
+      setStatus("error");
+      setErrorMessage(err instanceof Error ? err.message : "Please try again.");
+    }
+  };
+
+  const fieldClass = "w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500";
+
+  return (
+    <form onSubmit={handleSubmit} className="mt-4 flex flex-col gap-2.5">
+      <input type="email" required placeholder="Your email" value={fanEmail} onChange={(e) => setFanEmail(e.target.value)} disabled={status === "submitting"} className={fieldClass} />
+      <input type="text" placeholder="Your name (optional)" value={fanName} onChange={(e) => setFanName(e.target.value)} disabled={status === "submitting"} className={fieldClass} />
+      <div className="flex items-center gap-2">
+        <span className="text-sm text-gray-500">Tickets</span>
+        <input
+          type="number"
+          required
+          min={1}
+          max={Math.min(20, remaining)}
+          value={quantity}
+          onChange={(e) => setQuantity(Number(e.target.value))}
+          disabled={status === "submitting"}
+          className={fieldClass}
+        />
+      </div>
+      {errorMessage && <p className="text-xs text-red-600">{errorMessage}</p>}
+      <div className="flex gap-2">
+        <Button type="button" variant="outline" onClick={onCancel} disabled={status === "submitting"} className="flex-1">
+          Cancel
+        </Button>
+        <Button
+          type="submit"
+          disabled={status === "submitting"}
+          className="flex-1 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white"
+        >
+          {status === "submitting" ? "Redirecting…" : gateway === "kyshi" ? "Pay with Kyshi" : "Pay with Payfast"}
+        </Button>
+      </div>
     </form>
   );
 }

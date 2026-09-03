@@ -3,6 +3,7 @@ import { getCurrentAppUser } from "@/lib/auth";
 import { withServiceRole } from "@/lib/authContext";
 import { computeCommission } from "@/lib/payments/commission";
 import { completeSubscriptionInstallment } from "@/lib/payments/subscriptionCompletion";
+import { completeTicketPurchase } from "@/lib/payments/ticketCompletion";
 import { confirmWithPayfast, getPassphrase, parseOrderedForm, toRecord, verifyItnSignature } from "@/lib/payments/payfastSignature";
 
 type PayfastCustomData = {
@@ -90,6 +91,25 @@ export async function POST(req: NextRequest) {
     } else if (paymentStatus === "FAILED" || paymentStatus === "CANCELLED") {
       await withServiceRole((tx) =>
         tx.subscriptionPayment.updateMany({ where: { paymentReference: customData.paymentReference, status: "PENDING" }, data: { status: "FAILED" } }),
+      );
+    }
+    return new NextResponse("OK", { status: 200 });
+  }
+
+  if (customData.type === "ticket") {
+    if (!customData.paymentReference) {
+      console.warn("[payfast webhook] ticket notification missing paymentReference:", customData);
+      return new NextResponse("OK", { status: 200 });
+    }
+    if (paymentStatus === "COMPLETE") {
+      await withServiceRole(async (tx) => {
+        const result = await completeTicketPurchase(tx, customData.paymentReference!, { confirmedAmount: amount });
+        if (!result.ok) console.warn("[payfast webhook] ticket completion failed:", result.reason);
+        else console.log("[payfast webhook] ticket purchase confirmed, ref:", customData.paymentReference);
+      });
+    } else if (paymentStatus === "FAILED" || paymentStatus === "CANCELLED") {
+      await withServiceRole((tx) =>
+        tx.ticketPurchase.updateMany({ where: { ticketCode: customData.paymentReference, status: "PENDING" }, data: { status: "CANCELLED" } }),
       );
     }
     return new NextResponse("OK", { status: 200 });

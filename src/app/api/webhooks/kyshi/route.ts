@@ -3,6 +3,7 @@ import { getCurrentAppUser } from "@/lib/auth";
 import { withServiceRole } from "@/lib/authContext";
 import { computeCommission } from "@/lib/payments/commission";
 import { completeSubscriptionInstallment } from "@/lib/payments/subscriptionCompletion";
+import { completeTicketPurchase } from "@/lib/payments/ticketCompletion";
 import { isWithinReplayWindow, verifyKyshiSignature } from "@/lib/payments/kyshiSignature";
 
 type KyshiEventData = {
@@ -92,6 +93,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ received: true });
     }
 
+    if (data.meta?.type === "ticket") {
+      if (!reference) {
+        console.warn("[kyshi webhook] ticket notification missing reference");
+        return NextResponse.json({ received: true });
+      }
+      await withServiceRole(async (tx) => {
+        const result = await completeTicketPurchase(tx, reference, { confirmedAmount });
+        if (!result.ok) console.warn("[kyshi webhook] ticket completion failed:", result.reason);
+        else console.log("[kyshi webhook] ticket purchase confirmed, ref:", reference);
+      });
+      return NextResponse.json({ received: true });
+    }
+
     if (!reference) {
       return NextResponse.json({ received: true });
     }
@@ -167,6 +181,7 @@ export async function POST(req: NextRequest) {
           return;
         }
         await tx.subscriptionPayment.updateMany({ where: { paymentReference: reference, status: "PENDING" }, data: { status: "FAILED" } });
+        await tx.ticketPurchase.updateMany({ where: { ticketCode: reference, status: "PENDING" }, data: { status: "CANCELLED" } });
       });
     }
   } else {

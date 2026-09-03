@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Music } from "lucide-react";
 import { withCurrentUser } from "@/lib/auth";
 import { toPlain } from "@/lib/serialize";
-import { Storefront, type PlainMusician, type PlainTrack, type PlainMerchandise } from "./Storefront";
+import { Storefront, type PlainMusician, type PlainTrack, type PlainMerchandise, type PlainEvent } from "./Storefront";
 
 // Public musician storefront at the top-level slug — enkoremusic.africa/{slug}
 // per the PRD (§5, "Musician Storefront"), not a /musician/{slug} or /m/{slug}
@@ -31,9 +31,10 @@ export default async function MusicianStorefrontPage({ params }: { params: Promi
     );
   }
 
-  const [tracks, merchandise] = await Promise.all([
+  const [tracks, merchandise, events] = await Promise.all([
     withCurrentUser((tx) => tx.track.findMany({ where: { musicianId: musician.id }, orderBy: { createdAt: "desc" } })),
     withCurrentUser((tx) => tx.merchandise.findMany({ where: { musicianId: musician.id, status: "ACTIVE" }, orderBy: { createdAt: "desc" } })),
+    withCurrentUser((tx) => tx.event.findMany({ where: { musicianId: musician.id, status: { in: ["UPCOMING", "SOLD_OUT"] } }, orderBy: { eventDate: "asc" } })),
   ]);
 
   return (
@@ -41,6 +42,7 @@ export default async function MusicianStorefrontPage({ params }: { params: Promi
       musician={toPlain<PlainMusician>(musician)}
       tracks={toPlain<PlainTrack[]>(tracks)}
       merchandise={toPlain<PlainMerchandise[]>(merchandise)}
+      events={toPlain<PlainEvent[]>(events)}
     />
   );
 }

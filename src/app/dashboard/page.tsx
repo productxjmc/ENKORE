@@ -99,7 +99,7 @@ export default async function DashboardPage() {
 
   const dashboardData = {
     musician,
-    tracks: tracks.slice(0, 5),
+    tracks,
     stats: {
       totalRevenue: Number(musician.totalRevenue),
       totalTracks: tracks.length,

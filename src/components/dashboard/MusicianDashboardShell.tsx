@@ -7,6 +7,7 @@ import StatsCard from "@/components/dashboard/StatsCard";
 import RecentActivity, { type ActivityItem } from "@/components/dashboard/RecentActivity";
 import TopTracks from "@/components/dashboard/TopTracks";
 import SalesBreakdown from "@/components/dashboard/SalesBreakdown";
+import TrackManagement from "@/components/dashboard/TrackManagement";
 
 // Decimal fields become plain numbers after page.tsx's toPlain() — see
 // src/lib/serialize.ts, same pattern as PartnerDashboard's PlainAffiliate.
@@ -123,17 +124,19 @@ export default function MusicianDashboardShell({ data }: { data: DashboardData }
           />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8">
           <div className="lg:col-span-1">
             <SalesBreakdown breakdown={salesBreakdown} />
           </div>
           <div className="lg:col-span-1">
-            <TopTracks tracks={tracks} />
+            <TopTracks tracks={tracks.slice(0, 5)} />
           </div>
           <div className="lg:col-span-1">
             <RecentActivity activities={recentActivity} />
           </div>
         </div>
+
+        <TrackManagement tracks={tracks} musicianId={musician.id} />
       </main>
     </div>
   );

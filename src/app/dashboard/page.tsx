@@ -36,21 +36,22 @@ export default async function DashboardPage() {
     const musician = await tx.musician.findFirst({ where: { OR: [{ userId: user.id }, { email: user.email }] } });
     if (!musician) return null;
 
-    const [tracks, purchases, follows, messages, goals, bookingEnquiries] = await Promise.all([
+    const [tracks, purchases, follows, messages, goals, bookingEnquiries, subscription] = await Promise.all([
       tx.track.findMany({ where: { musicianId: musician.id }, orderBy: { downloadsCount: "desc" } }),
       tx.purchase.findMany({ where: { musicianId: musician.id }, orderBy: { createdAt: "desc" }, take: 50 }),
       tx.follow.findMany({ where: { musicianId: musician.id }, orderBy: { createdAt: "desc" } }),
       tx.message.findMany({ where: { musicianId: musician.id, senderType: "FAN" }, orderBy: { createdAt: "desc" }, take: 20 }),
       tx.goal.findMany({ where: { musicianId: musician.id }, orderBy: { createdAt: "desc" } }),
       tx.bookingEnquiry.findMany({ where: { musicianId: musician.id }, orderBy: { createdAt: "desc" } }),
+      tx.musicianSubscription.findFirst({ where: { musicianId: musician.id }, orderBy: { createdAt: "desc" } }),
     ]);
 
-    return { musician, tracks, purchases, follows, messages, goals, bookingEnquiries };
+    return { musician, tracks, purchases, follows, messages, goals, bookingEnquiries, subscription };
   });
 
   if (!data) redirect("/musician-pre-register");
 
-  const { musician, tracks, purchases, follows, messages, goals, bookingEnquiries } = data;
+  const { musician, tracks, purchases, follows, messages, goals, bookingEnquiries, subscription } = data;
 
   const { oneWeekAgo, twoWeeksAgo, oneDayAgo } = dateBounds();
 
@@ -104,6 +105,7 @@ export default async function DashboardPage() {
     tracks,
     goals,
     bookingEnquiries,
+    subscription: subscription ? { status: subscription.status, subscriptionType: subscription.subscriptionType, nextBillingDate: subscription.nextBillingDate } : null,
     stats: {
       totalRevenue: Number(musician.totalRevenue),
       totalTracks: tracks.length,

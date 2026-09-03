@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getCurrentAppUser } from "@/lib/auth";
 import { withServiceRole } from "@/lib/authContext";
 import { computeCommission } from "@/lib/payments/commission";
+import { completeSubscriptionInstallment } from "@/lib/payments/subscriptionCompletion";
 import { confirmWithPayfast, getPassphrase, parseOrderedForm, toRecord, verifyItnSignature } from "@/lib/payments/payfastSignature";
 
 type PayfastCustomData = {
@@ -11,6 +12,7 @@ type PayfastCustomData = {
   fan_name?: string;
   fan_email?: string;
   type?: string;
+  paymentReference?: string;
 };
 
 // Ported from base44/functions/payfastNotify/entry.ts. Scoped to the
@@ -71,6 +73,25 @@ export async function POST(req: NextRequest) {
     // so Payfast doesn't retry, but do nothing — there is no order to
     // update.
     console.warn("[payfast webhook] merchandise order notification received, but Stage 5 isn't built yet:", customData);
+    return new NextResponse("OK", { status: 200 });
+  }
+
+  if (customData.type === "subscription") {
+    if (!customData.paymentReference) {
+      console.warn("[payfast webhook] subscription notification missing paymentReference:", customData);
+      return new NextResponse("OK", { status: 200 });
+    }
+    if (paymentStatus === "COMPLETE") {
+      await withServiceRole(async (tx) => {
+        const result = await completeSubscriptionInstallment(tx, customData.paymentReference!, { gatewayReference: payfastData.pf_payment_id });
+        if (!result.ok) console.warn("[payfast webhook] subscription completion failed:", result.reason);
+        else console.log("[payfast webhook] subscription installment paid, ref:", customData.paymentReference);
+      });
+    } else if (paymentStatus === "FAILED" || paymentStatus === "CANCELLED") {
+      await withServiceRole((tx) =>
+        tx.subscriptionPayment.updateMany({ where: { paymentReference: customData.paymentReference, status: "PENDING" }, data: { status: "FAILED" } }),
+      );
+    }
     return new NextResponse("OK", { status: 200 });
   }
 

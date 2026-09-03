@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getCurrentAppUser } from "@/lib/auth";
 import { withServiceRole } from "@/lib/authContext";
 import { computeCommission } from "@/lib/payments/commission";
+import { completeSubscriptionInstallment } from "@/lib/payments/subscriptionCompletion";
 import { isWithinReplayWindow, verifyKyshiSignature } from "@/lib/payments/kyshiSignature";
 
 type KyshiEventData = {
@@ -10,15 +11,17 @@ type KyshiEventData = {
   meta?: { localCurrency?: string; localAmount?: number; order_id?: string; type?: string; payment_record_id?: string };
 };
 
-// Ported from base44/functions/kyshiWebhook/entry.ts, scoped to the
-// track-purchase path only. The original also handled merchandise-order
-// fulfillment and the full subscription lifecycle (installments,
-// renewals, cancellations, past-due) — none of that exists yet in this
-// rebuild (Stages 5 and 8), so those branches are TODOs below rather than
-// ported code with nothing to act on. What's kept: the signature
-// verification, replay-window check, and flat-vs-wrapped payload handling
-// were already hardened in the original (see its own comments) — ported
-// close to verbatim rather than redone.
+// Ported from base44/functions/kyshiWebhook/entry.ts. Handles track
+// purchases and subscription-installment completion (see
+// completeSubscriptionInstallment). The original also handled
+// merchandise-order fulfillment and the full subscription renewal
+// lifecycle (reminders, past-due, cancellations) — Merchandise/
+// MerchandiseOrder don't exist in this rebuild yet (Stage 5), and there's
+// no billing-sweep cron to drive renewal lifecycle events, so those stay
+// TODOs below rather than ported code with nothing to act on. What's
+// kept: the signature verification, replay-window check, and
+// flat-vs-wrapped payload handling were already hardened in the original
+// (see its own comments) — ported close to verbatim rather than redone.
 export async function POST(req: NextRequest) {
   const authHeader = req.headers.get("authorization");
   if (authHeader) {
@@ -76,11 +79,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ received: true });
     }
 
-    // TODO(Stage 8 — Subscriptions): the original applied a subscription
-    // installment here when data.meta.type === 'subscription'.
-    // MusicianSubscription writes aren't wired up yet.
     if (data.meta?.type === "subscription" && data.meta?.payment_record_id) {
-      console.warn("[kyshi webhook] subscription installment notification received, but Stage 8 isn't built yet:", data.meta.payment_record_id);
+      if (!reference) {
+        console.warn("[kyshi webhook] subscription notification missing reference:", data.meta.payment_record_id);
+        return NextResponse.json({ received: true });
+      }
+      await withServiceRole(async (tx) => {
+        const result = await completeSubscriptionInstallment(tx, reference);
+        if (!result.ok) console.warn("[kyshi webhook] subscription completion failed:", result.reason);
+        else console.log("[kyshi webhook] subscription installment paid, ref:", reference);
+      });
       return NextResponse.json({ received: true });
     }
 
@@ -156,15 +164,19 @@ export async function POST(req: NextRequest) {
         const purchase = await tx.purchase.findFirst({ where: { paymentReference: reference } });
         if (purchase && purchase.status !== "FAILED") {
           await tx.purchase.update({ where: { id: purchase.id }, data: { status: "FAILED" } });
+          return;
         }
+        await tx.subscriptionPayment.updateMany({ where: { paymentReference: reference, status: "PENDING" }, data: { status: "FAILED" } });
       });
     }
   } else {
-    // TODO(Stage 8 — Subscriptions): invoice.payment_succeeded,
-    // invoice.payment_failed, subscription.past_due,
-    // subscription.cancelled/completed/not_renewing all had handlers in
-    // the original — none apply until MusicianSubscription writes exist.
-    console.log(`[kyshi webhook] unhandled event type (expected until Stage 8 exists): ${event}`);
+    // TODO: invoice.payment_succeeded / invoice.payment_failed /
+    // subscription.past_due / subscription.cancelled / not_renewing —
+    // renewal-reminder and lapse-sweep lifecycle events, not the one-off
+    // "installment paid" completion handled above (that part is done).
+    // None apply yet — there's no billing-sweep cron in this rebuild to
+    // emit or react to them.
+    console.log(`[kyshi webhook] unhandled event type: ${event}`);
   }
 
   return NextResponse.json({ received: true });

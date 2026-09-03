@@ -18,6 +18,8 @@ const isProtectedRoute = createRouteMatcher([
   "/api/musician(/.*)?",
   "/api/admin(/.*)?",
   "/api/partners/activate",
+  "/api/payments/payfast/initialize-subscription",
+  "/api/payments/kyshi/initialize-subscription",
 ]);
 
 // Next.js 16 renamed Middleware to Proxy — this file must be named

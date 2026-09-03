@@ -13,6 +13,8 @@ import type { PlainGoal } from "@/components/dashboard/GoalList";
 import AvailabilityManager from "@/components/dashboard/AvailabilityManager";
 import BookingEnquiriesList, { type PlainBookingEnquiry } from "@/components/dashboard/BookingEnquiriesList";
 import SubscriptionCard, { type PlainSubscription } from "@/components/subscription/SubscriptionCard";
+import LaunchpadToggle from "@/components/dashboard/LaunchpadToggle";
+import GrowthRoadmap, { type GrowthRoadmapData } from "@/components/dashboard/GrowthRoadmap";
 
 // Decimal fields become plain numbers after page.tsx's toPlain() — see
 // src/lib/serialize.ts, same pattern as PartnerDashboard's PlainAffiliate.
@@ -29,6 +31,8 @@ export type DashboardData = {
   goals: PlainGoal[];
   bookingEnquiries: PlainBookingEnquiry[];
   subscription: PlainSubscription;
+  payoutComplete: boolean;
+  growthRoadmap: GrowthRoadmapData;
   stats: {
     totalRevenue: number;
     totalTracks: number;
@@ -50,7 +54,7 @@ export type DashboardData = {
 // a deliberate departure from the dark brand used on /partners and the
 // storefront — see the plan's locked design decision.
 export default function MusicianDashboardShell({ data }: { data: DashboardData }) {
-  const { musician, tracks, goals, bookingEnquiries, subscription, stats, salesBreakdown, recentActivity } = data;
+  const { musician, tracks, goals, bookingEnquiries, subscription, payoutComplete, growthRoadmap, stats, salesBreakdown, recentActivity } = data;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -128,6 +132,18 @@ export default function MusicianDashboardShell({ data }: { data: DashboardData }
             </div>
           </div>
         )}
+
+        <div className="mb-6 md:mb-8">
+          <GrowthRoadmap data={growthRoadmap} />
+        </div>
+
+        <div className="mb-6 md:mb-8">
+          <LaunchpadToggle
+            musician={{ isLive: musician.isLive, selectedPlan: musician.selectedPlan, profileImage: musician.profileImage, bio: musician.bio, requirementsStatus: musician.requirementsStatus }}
+            tracksCount={tracks.length}
+            payoutComplete={payoutComplete}
+          />
+        </div>
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8">
           <StatsCard

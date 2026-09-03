@@ -36,7 +36,7 @@ export default async function DashboardPage() {
     const musician = await tx.musician.findFirst({ where: { OR: [{ userId: user.id }, { email: user.email }] } });
     if (!musician) return null;
 
-    const [tracks, purchases, follows, messages, goals, bookingEnquiries, subscription] = await Promise.all([
+    const [tracks, purchases, follows, messages, goals, bookingEnquiries, subscription, payoutInfo] = await Promise.all([
       tx.track.findMany({ where: { musicianId: musician.id }, orderBy: { downloadsCount: "desc" } }),
       tx.purchase.findMany({ where: { musicianId: musician.id }, orderBy: { createdAt: "desc" }, take: 50 }),
       tx.follow.findMany({ where: { musicianId: musician.id }, orderBy: { createdAt: "desc" } }),
@@ -44,14 +44,16 @@ export default async function DashboardPage() {
       tx.goal.findMany({ where: { musicianId: musician.id }, orderBy: { createdAt: "desc" } }),
       tx.bookingEnquiry.findMany({ where: { musicianId: musician.id }, orderBy: { createdAt: "desc" } }),
       tx.musicianSubscription.findFirst({ where: { musicianId: musician.id }, orderBy: { createdAt: "desc" } }),
+      tx.musicianPayoutInfo.findUnique({ where: { musicianId: musician.id } }),
     ]);
 
-    return { musician, tracks, purchases, follows, messages, goals, bookingEnquiries, subscription };
+    return { musician, tracks, purchases, follows, messages, goals, bookingEnquiries, subscription, payoutInfo };
   });
 
   if (!data) redirect("/musician-pre-register");
 
-  const { musician, tracks, purchases, follows, messages, goals, bookingEnquiries, subscription } = data;
+  const { musician, tracks, purchases, follows, messages, goals, bookingEnquiries, subscription, payoutInfo } = data;
+  const payoutComplete = Boolean(payoutInfo?.bankName && payoutInfo?.accountNumber);
 
   const { oneWeekAgo, twoWeeksAgo, oneDayAgo } = dateBounds();
 
@@ -106,6 +108,15 @@ export default async function DashboardPage() {
     goals,
     bookingEnquiries,
     subscription: subscription ? { status: subscription.status, subscriptionType: subscription.subscriptionType, nextBillingDate: subscription.nextBillingDate } : null,
+    payoutComplete,
+    growthRoadmap: {
+      requirementsApproved: musician.requirementsStatus === "APPROVED",
+      payoutComplete,
+      tracksCount: tracks.length,
+      isLive: musician.isLive,
+      followersCount: follows.length,
+      salesCount: completedPurchases.length,
+    },
     stats: {
       totalRevenue: Number(musician.totalRevenue),
       totalTracks: tracks.length,

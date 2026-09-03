@@ -45,7 +45,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
     const alreadyExisted = Boolean(musician);
 
     if (!musician) {
-      let baseSlug = slugify(application.artistName) || "artist";
+      const baseSlug = slugify(application.artistName) || "artist";
       let slug = baseSlug;
       for (let attempt = 1; attempt <= 10; attempt++) {
         const clash = await tx.musician.findUnique({ where: { storefrontUrl: slug } });
@@ -78,6 +78,20 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
         amount: 0,
         startDate: now,
         endDate: termEnd,
+        nextBillingDate: termEnd,
+        // The launch-toggle gate (src/app/api/musician/launch/route.ts) only
+        // counts a subscription as "paid" if paymentReference is set — real
+        // proof a gateway actually processed something, not just a
+        // self-consistent ACTIVE status. A free grant has no gateway
+        // transaction to reference, so it needs an explicit marker here or
+        // Season of Singing musicians would be permanently blocked from
+        // ever going live despite the program's entire premise being a
+        // free launch. Caught while building the launch-toggle phase,
+        // fixed here rather than weakening that gate's actual security
+        // intent (which is real: it exists because a musician's own RLS
+        // write access to MusicianSubscription means status=ACTIVE alone
+        // proves nothing).
+        paymentReference: "SEASON-OF-SINGING-GRANT",
         description: "Season of Singing — 3-month free term, 0% ENKORE commission",
       },
     });

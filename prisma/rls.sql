@@ -83,8 +83,21 @@ alter table "User" force row level security;
 create policy user_select on "User" for select using (id = app.uid() or app.is_admin());
 create policy user_update on "User" for update using (id = app.uid() or app.is_admin())
   with check (id = app.uid() or app.is_admin());
--- No client insert/delete policy: User rows are created/removed only by
--- the Clerk webhook handler, which connects with a service role.
+-- User rows are created/removed only by server-side code connected via
+-- withServiceRole (the Clerk webhook handler, and getCurrentAppUser()'s
+-- inline-create fallback for the first request after sign-up, before the
+-- webhook has landed) — never a client-scoped self-insert, since nothing
+-- has verified the caller's claimed clerkId/email against Clerk at that
+-- point. BUG FIX (found live in production): this table had FORCE ROW
+-- LEVEL SECURITY with zero insert/delete policies at all, which blocks
+-- insert/delete for every session including service-role ones — Postgres
+-- denies an entire command type outright when no policy of that type
+-- exists, session variables notwithstanding. That broke both call sites
+-- above (P2039-shaped failures), meaning brand-new Clerk sign-ins could
+-- fail site-wide. Every other identity table (Fan, Affiliate) already had
+-- a `for all` policy covering insert; User was the only one missing it.
+create policy user_insert on "User" for insert with check (app.is_admin());
+create policy user_delete on "User" for delete using (app.is_admin());
 
 -- ─────────────────────────────────────────────────────────────────────────
 -- Musicians & catalogue — storefronts are public by product design

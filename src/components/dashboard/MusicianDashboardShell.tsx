@@ -8,6 +8,8 @@ import RecentActivity, { type ActivityItem } from "@/components/dashboard/Recent
 import TopTracks from "@/components/dashboard/TopTracks";
 import SalesBreakdown from "@/components/dashboard/SalesBreakdown";
 import TrackManagement from "@/components/dashboard/TrackManagement";
+import GoalsSection from "@/components/dashboard/GoalsSection";
+import type { PlainGoal } from "@/components/dashboard/GoalList";
 
 // Decimal fields become plain numbers after page.tsx's toPlain() — see
 // src/lib/serialize.ts, same pattern as PartnerDashboard's PlainAffiliate.
@@ -21,6 +23,7 @@ export type PlainTrack = Omit<Track, "basePrice" | "minimumPrice" | "revenueGene
 export type DashboardData = {
   musician: PlainMusician;
   tracks: PlainTrack[];
+  goals: PlainGoal[];
   stats: {
     totalRevenue: number;
     totalTracks: number;
@@ -42,7 +45,7 @@ export type DashboardData = {
 // a deliberate departure from the dark brand used on /partners and the
 // storefront — see the plan's locked design decision.
 export default function MusicianDashboardShell({ data }: { data: DashboardData }) {
-  const { musician, tracks, stats, salesBreakdown, recentActivity } = data;
+  const { musician, tracks, goals, stats, salesBreakdown, recentActivity } = data;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -159,7 +162,11 @@ export default function MusicianDashboardShell({ data }: { data: DashboardData }
           </div>
         </div>
 
-        <TrackManagement tracks={tracks} musicianId={musician.id} />
+        <div className="mb-6 md:mb-8">
+          <TrackManagement tracks={tracks} musicianId={musician.id} />
+        </div>
+
+        <GoalsSection goals={goals} />
       </main>
     </div>
   );

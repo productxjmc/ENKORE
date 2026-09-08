@@ -1,8 +1,10 @@
 import type { Metadata, Viewport } from "next";
 import { Archivo } from "next/font/google";
+import { getCurrentAppUser, withCurrentUser } from "@/lib/auth";
 import ServiceWorkerRegister from "@/components/mobile/ServiceWorkerRegister";
 import MobileHeader from "@/components/mobile/MobileHeader";
 import MobileBottomNav from "@/components/mobile/MobileBottomNav";
+import MobileShellProvider from "@/components/mobile/MobileShellProvider";
 import "./mobile.css";
 
 const archivo = Archivo({
@@ -33,17 +35,27 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-// Phase 0: shell + PWA registration + a fixed Member nav, proven end to
-// end. Phase 1 adds real identity (sign in/up) and swaps the header's
-// static role badge + MobileBottomNav's fixed item set for the actual
-// signed-in role.
-export default function MobileLayout({ children }: { children: React.ReactNode }) {
+// Auth/role state is resolved ONCE here, server-side, and handed down to
+// the client MobileShellProvider — Header and BottomNav both read it from
+// context rather than each re-deriving it. hasMusicianProfile reuses the
+// exact same OR: [{userId}, {email}] lookup the dashboard and every other
+// musician-scoped page in this app already uses.
+export default async function MobileLayout({ children }: { children: React.ReactNode }) {
+  const user = await getCurrentAppUser();
+  const hasMusicianProfile = user
+    ? await withCurrentUser((tx) =>
+        tx.musician.findFirst({ where: { OR: [{ userId: user.id }, { email: user.email }] }, select: { id: true } }),
+      ).then((m) => m != null)
+    : false;
+
   return (
     <div className={`${archivo.variable} enkore-m flex min-h-dvh flex-col`}>
       <ServiceWorkerRegister />
-      <MobileHeader />
-      <main className="flex-1">{children}</main>
-      <MobileBottomNav />
+      <MobileShellProvider isSignedIn={!!user} hasMusicianProfile={hasMusicianProfile}>
+        <MobileHeader />
+        <main className="flex-1">{children}</main>
+        <MobileBottomNav />
+      </MobileShellProvider>
     </div>
   );
 }

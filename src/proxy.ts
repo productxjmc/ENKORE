@@ -20,6 +20,9 @@ const isProtectedRoute = createRouteMatcher([
   "/api/partners/activate",
   "/api/payments/payfast/initialize-subscription",
   "/api/payments/kyshi/initialize-subscription",
+  // Mobile app's fan-facing API routes (src/app/api/m) — every one of them
+  // requires a signed-in member, same defense-in-depth as /api/musician.
+  "/api/m(/.*)?",
 ]);
 
 // Next.js 16 renamed Middleware to Proxy — this file must be named

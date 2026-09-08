@@ -253,8 +253,16 @@ model Fan {
 
   fullName String?
   email    String  @unique
+  phone    String?
   location String?
   socialLink String?
+
+  // Per-channel opt-in for the mobile app's signup (app/email/sms/whatsapp),
+  // e.g. { app: true, email: true, sms: false, whatsapp: true }. A JSON
+  // column rather than a join table — this is a small fixed-shape settings
+  // object per fan, matching how Musician.socialLinks already does the same
+  // kind of thing in this schema, not a relation that needs its own rows.
+  consent Json?
 
   christianGenre ChristianGenre?
 

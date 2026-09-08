@@ -1,0 +1,35 @@
+/* Design tokens for the ENKORE mobile shell (src/app/m) — a deliberate
+   departure from the dashboard's "light functional admin" palette
+   (bg-gray-50/white, rounded cards) and the storefront's dark-hero
+   treatment, per the mobile design (ENKORE Mobile App.dc.html): flush-left,
+   zero-radius, 2px rules, Archivo type. Scoped under .enkore-m so none of
+   this leaks into the dashboard, admin, or marketing pages that share this
+   Tailwind build — --color-enkore-orange from globals.css is reused as-is
+   since the accent itself (#FF3700) is already the same brand color
+   everywhere, just applied with a different visual language here. */
+
+.enkore-m {
+  --m-ink: #201e1d;
+  --m-ground: #f3f2f2;
+  --m-accent: var(--color-enkore-orange, #ff3700);
+  --m-accent-hover: #e02f00;
+  --m-line: rgba(32, 30, 29, 0.4);
+  --m-hairline: #d7d3d3;
+  --m-text-muted: #605d5d;
+  --m-text-faint: #7d7979;
+  --m-surface-hover: rgba(32, 30, 29, 0.07);
+
+  background: var(--m-ground);
+  color: var(--m-ink);
+  font-family: var(--font-archivo), Archivo, system-ui, sans-serif;
+  min-height: 100dvh;
+}
+
+.enkore-m * {
+  border-radius: 0 !important;
+}
+
+.enkore-m ::selection {
+  background: var(--m-accent);
+  color: #fff;
+}

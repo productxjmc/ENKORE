@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid request", issues: parsed.error.issues }, { status: 400 });
   }
-  const { eventId, musicianId, fanEmail, fanName, quantity } = parsed.data;
+  const { eventId, musicianId, fanEmail, fanName, quantity, channel } = parsed.data;
 
   const apiKey = kyshiApiKey();
   if (!apiKey) {
@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
       email: fanEmail,
       localCurrency: "NGN",
       reference,
-      channels: ["card", "mobileMoney", "bankTransfer"],
+      channels: channel ? [channel] : ["card", "mobileMoney", "bankTransfer"],
       redirectUrl: `${origin}/payment-confirmation?reference=${reference}`,
       meta: { type: "ticket" },
     }),

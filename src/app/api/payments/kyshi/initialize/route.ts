@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid request", issues: parsed.error.issues }, { status: 400 });
   }
-  const { trackId, musicianId, fanEmail, fanName, amount, localCurrency } = parsed.data;
+  const { trackId, musicianId, fanEmail, fanName, amount, localCurrency, channel } = parsed.data;
 
   const apiKey = kyshiApiKey();
   if (!apiKey) {
@@ -80,7 +80,12 @@ export async function POST(req: NextRequest) {
       email: fanEmail,
       localCurrency: currency,
       reference,
-      channels: ["card", "mobileMoney", "bankTransfer"],
+      // A caller-selected channel narrows the array to that one value
+      // (confirmed via Kyshi's own docs that `["card"]` alone works) —
+      // omitted, it falls back to all three exactly as before, so the
+      // existing web storefront checkout (which never sends `channel`)
+      // is unaffected by this change.
+      channels: channel ? [channel] : ["card", "mobileMoney", "bankTransfer"],
       redirectUrl: `${origin}/payment-confirmation?reference=${reference}`,
     }),
   });

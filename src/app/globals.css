@@ -101,14 +101,7 @@ html { scroll-behavior: smooth; }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
 }
-+/* Smooth in-page anchor scrolling for the Modernist landing page's nav
-+   (#musicians, #pricing, #start) — matches the design export's own
-+   html{scroll-behavior:smooth}. */
-+html { scroll-behavior: smooth; }
-+@media (prefers-reduced-motion: reduce) {
-+  html { scroll-behavior: auto; }
-+}
-+
+
 /* Ported from the Base44 app's src/globals.css alongside the new hero
    design — used by HeroIntroPopup's header band and CTA button. */
 .enkore-orange-gradient {

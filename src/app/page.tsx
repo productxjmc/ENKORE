@@ -274,7 +274,7 @@ export default function Home() {
             Three documents and a photograph
           </h3>
           <p className="mt-6 max-w-[50ch] text-[clamp(16px,4.2vw,19px)] leading-[1.6] text-[#f3f2f2]/82">
-            Your ID, a bank confirmation letter and a press photo. A person reviews them in two to three business
+            Your ID, a bank confirmation letter and a press photo. A person reviews them in 7 to 21 working
             days — then your storefront is live at enkoremusic.africa/your-name.
           </p>
           <div className="mt-8 flex flex-wrap gap-[2px]">

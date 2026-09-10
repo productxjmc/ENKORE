@@ -8,6 +8,7 @@ import { formatFromZar } from "@/lib/pricingConfig";
 import SupportSection from "@/components/mobile/SupportSection";
 import NotifyMeButton from "@/components/mobile/NotifyMeButton";
 import WallSection from "@/components/mobile/WallSection";
+import MessageMusicianSection from "@/components/mobile/MessageMusicianSection";
 
 // Same public-read data the web storefront (src/app/[slug]/page.tsx)
 // already queries — Musician/Track/Merchandise/Event are all public-select
@@ -64,6 +65,10 @@ export default async function MobileStorefrontPage({ params }: { params: Promise
           <CalendarPlus className="h-4 w-4" style={{ color: "var(--m-accent)" }} />
           Book {musician.musicianName}
         </Link>
+      </div>
+
+      <div className="border-b p-4" style={{ borderColor: "var(--m-hairline)" }}>
+        <MessageMusicianSection musicianId={musician.id} musicianName={musician.musicianName} signedIn={!!currentFan} />
       </div>
 
       <div className="border-b-2 p-4" style={{ borderColor: "var(--m-line)" }}>

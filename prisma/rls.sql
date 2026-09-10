@@ -464,3 +464,9 @@ alter table "Goal" force row level security;
 create policy goal_select on "Goal" for select using (app.owns_musician("musicianId") or app.is_admin());
 create policy goal_write on "Goal" for all using (app.owns_musician("musicianId") or app.is_admin())
   with check (app.owns_musician("musicianId") or app.is_admin());
+
+alter table "Broadcast" enable row level security;
+alter table "Broadcast" force row level security;
+create policy broadcast_select on "Broadcast" for select using (app.owns_musician("musicianId") or app.is_admin());
+create policy broadcast_write on "Broadcast" for all using (app.owns_musician("musicianId") or app.is_admin())
+  with check (app.owns_musician("musicianId") or app.is_admin());

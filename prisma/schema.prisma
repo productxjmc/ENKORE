@@ -163,6 +163,7 @@ model Musician {
   attendances       Attendance[]
   fanSubscriptions  FanSubscription[]
   interestSignals   InterestSignal[]
+  broadcasts        Broadcast[]
 
   @@index([storefrontUrl])
 }
@@ -1157,6 +1158,42 @@ enum GoalStatus {
   COMPLETED
   CANCELLED
   EXPIRED
+}
+
+enum BroadcastChannel {
+  APP
+  EMAIL
+  SMS
+  WHATSAPP
+}
+
+enum BroadcastAudience {
+  ALL_FOLLOWERS
+  SUBSCRIBERS
+  RECENT_BUYERS
+  TICKET_HOLDERS
+}
+
+// A broadcast composer submission, logged rather than actually sent — no
+// SMS/email provider is wired up in this rebuild yet (same "UI +
+// consent logic only" scope this phase's plan locked in). recipientCount
+// is computed and stored at send time against the real Fan.consent /
+// engagement data, so the number a musician sees here is genuine, even
+// though nothing goes out over the wire yet.
+model Broadcast {
+  id         String   @id @default(cuid())
+  musicianId String
+  musician   Musician @relation(fields: [musicianId], references: [id], onDelete: Cascade)
+
+  subject        String?
+  message        String
+  channel        BroadcastChannel
+  audience       BroadcastAudience
+  recipientCount Int
+
+  createdAt DateTime @default(now())
+
+  @@index([musicianId])
 }
 
 model Goal {

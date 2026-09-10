@@ -470,3 +470,9 @@ alter table "Broadcast" force row level security;
 create policy broadcast_select on "Broadcast" for select using (app.owns_musician("musicianId") or app.is_admin());
 create policy broadcast_write on "Broadcast" for all using (app.owns_musician("musicianId") or app.is_admin())
   with check (app.owns_musician("musicianId") or app.is_admin());
+
+alter table "MusicianTeamMember" enable row level security;
+alter table "MusicianTeamMember" force row level security;
+create policy musicianteammember_select on "MusicianTeamMember" for select using (app.owns_musician("musicianId") or app.is_admin());
+create policy musicianteammember_write on "MusicianTeamMember" for all using (app.owns_musician("musicianId") or app.is_admin())
+  with check (app.owns_musician("musicianId") or app.is_admin());

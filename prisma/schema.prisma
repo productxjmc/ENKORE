@@ -164,6 +164,7 @@ model Musician {
   fanSubscriptions  FanSubscription[]
   interestSignals   InterestSignal[]
   broadcasts        Broadcast[]
+  teamMembers       MusicianTeamMember[]
 
   @@index([storefrontUrl])
 }
@@ -421,6 +422,8 @@ model TicketPurchase {
 
   createdAt DateTime @default(now())
 
+  attendance Attendance?
+
   @@index([eventId])
   @@index([musicianId])
 }
@@ -438,6 +441,14 @@ model Attendance {
   musician   Musician @relation(fields: [musicianId], references: [id], onDelete: Cascade)
   fanId      String?
   fan        Fan?     @relation(fields: [fanId], references: [id])
+
+  // Set only when this row came from the door scanner validating a paid
+  // ticket (as opposed to the pre-existing self-check-in flow, which has
+  // no ticket to reference at all). @unique is what actually stops a
+  // ticket being scanned in twice — a DB constraint, not just app logic
+  // re-checking before insert.
+  ticketPurchaseId String?         @unique
+  ticketPurchase   TicketPurchase? @relation(fields: [ticketPurchaseId], references: [id])
 
   fanName   String
   fanEmail  String
@@ -1190,6 +1201,26 @@ model Broadcast {
   channel        BroadcastChannel
   audience       BroadcastAudience
   recipientCount Int
+
+  createdAt DateTime @default(now())
+
+  @@index([musicianId])
+}
+
+// PRD §9 left "whether worship teams/bands need a distinct multi-member
+// account type" unresolved. This is deliberately NOT that — no auth
+// changes, no shared login, no permission tiers. Just a name/role label
+// list a musician keeps against their own storefront, enough for the
+// design's "Team members" screen without a multi-tenant Musician rework
+// nothing has asked for.
+model MusicianTeamMember {
+  id         String   @id @default(cuid())
+  musicianId String
+  musician   Musician @relation(fields: [musicianId], references: [id], onDelete: Cascade)
+
+  name  String
+  email String?
+  role  String?
 
   createdAt DateTime @default(now())
 

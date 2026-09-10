@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { DollarSign, Users, Download, ArrowUp, ArrowDown, ArrowRight, Wallet, CheckCircle2, Circle } from "lucide-react";
+import { DollarSign, Users, Download, ArrowUp, ArrowDown, ArrowRight, Wallet, CheckCircle2, Circle, ShoppingBag, Music, ScanLine, UsersRound } from "lucide-react";
 import { getCurrentAppUser, withCurrentUser } from "@/lib/auth";
 import { formatFromZar } from "@/lib/pricingConfig";
 import { COMMISSION_CAP_ZAR, COMMISSION_CAP_WINDOW_DAYS } from "@/lib/payments/commissionCap";
@@ -61,10 +61,10 @@ export default async function MobileStudioPage() {
   const capPercent = Math.min(100, Math.round((capTaken / COMMISSION_CAP_ZAR) * 100));
 
   const roadmapSteps = [
-    { label: "Submit profile requirements", done: musician.requirementsStatus === "APPROVED", href: "/dashboard/onboarding" },
+    { label: "Submit profile requirements", done: musician.requirementsStatus === "APPROVED", href: "/m/onboarding" },
     { label: "Add your bank & payout details", done: payoutComplete, href: "/m/payouts" },
-    { label: "Upload your first track", done: tracks.length > 0, href: "/dashboard/upload-track" },
-    { label: "List a merchandise item", done: merchCount > 0, href: "/dashboard/merchandise" },
+    { label: "Upload your first track", done: tracks.length > 0, href: "/m/upload-track" },
+    { label: "List a merchandise item", done: merchCount > 0, href: "/m/merch" },
     { label: "Launch your storefront (go live)", done: musician.isLive, href: "/dashboard" },
     { label: "Get your first 5 followers", done: follows >= 5, href: "/m/dash" },
     { label: "Make your first sale", done: purchases.length > 0, href: "/m/dash" },
@@ -154,6 +154,26 @@ export default async function MobileStudioPage() {
         </span>
         <ArrowRight className="h-4 w-4" />
       </Link>
+
+      <p className="mb-2 mt-5 text-[10px] font-bold uppercase tracking-[0.12em]" style={{ color: "var(--m-accent)" }}>Venue &amp; merch</p>
+      <div className="grid grid-cols-2 gap-2">
+        <Link href="/m/upload-track" className="flex min-h-14 items-center gap-2 border-2 px-3 text-[12px] font-bold" style={{ borderColor: "var(--m-line)" }}>
+          <Music className="h-4 w-4 flex-none" style={{ color: "var(--m-accent)" }} />
+          Upload track
+        </Link>
+        <Link href="/m/merch" className="flex min-h-14 items-center gap-2 border-2 px-3 text-[12px] font-bold" style={{ borderColor: "var(--m-line)" }}>
+          <ShoppingBag className="h-4 w-4 flex-none" style={{ color: "var(--m-accent)" }} />
+          Merchandise
+        </Link>
+        <Link href="/m/checkin" className="flex min-h-14 items-center gap-2 border-2 px-3 text-[12px] font-bold" style={{ borderColor: "var(--m-line)" }}>
+          <ScanLine className="h-4 w-4 flex-none" style={{ color: "var(--m-accent)" }} />
+          Door check-in
+        </Link>
+        <Link href="/m/team" className="flex min-h-14 items-center gap-2 border-2 px-3 text-[12px] font-bold" style={{ borderColor: "var(--m-line)" }}>
+          <UsersRound className="h-4 w-4 flex-none" style={{ color: "var(--m-accent)" }} />
+          Team members
+        </Link>
+      </div>
     </div>
   );
 }

@@ -1,6 +1,8 @@
 import Link from "next/link";
-import { getCurrentAppUser } from "@/lib/auth";
+import { Trophy } from "lucide-react";
+import { getCurrentAppUser, withCurrentUser } from "@/lib/auth";
 import { getCurrentFan } from "@/lib/fan";
+import { getFanSupportRanks, supporterRankLabel } from "@/lib/fanSupportRank";
 import ProfileConsentForm from "@/components/mobile/ProfileConsentForm";
 import SignOutButton from "@/components/mobile/SignOutButton";
 
@@ -26,6 +28,7 @@ export default async function MobileProfilePage() {
   }
 
   const fan = await getCurrentFan();
+  const supportRanks = fan ? await withCurrentUser((tx) => getFanSupportRanks(tx, fan.email)) : [];
 
   return (
     <div className="flex flex-col gap-6 p-4">
@@ -38,6 +41,25 @@ export default async function MobileProfilePage() {
         </h1>
         <p className="mt-1 text-[13px]" style={{ color: "var(--m-text-muted)" }}>{user.email}</p>
       </div>
+
+      {supportRanks.length > 0 && (
+        <div>
+          <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.12em]" style={{ color: "var(--m-accent)" }}>Your support</p>
+          <div className="flex flex-col gap-2">
+            {supportRanks.map((r) => (
+              <Link
+                key={r.musicianId}
+                href={`/m/u/${r.storefrontUrl ?? r.musicianId}`}
+                className="flex items-center gap-3 border-2 p-3"
+                style={{ borderColor: "var(--m-line)" }}
+              >
+                <Trophy className="h-4 w-4 flex-none" style={{ color: "var(--m-accent)" }} />
+                <span className="text-[13px] font-bold leading-[1.3]">{supporterRankLabel(r)}</span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
 
       <ProfileConsentForm initialConsent={fan?.consent ?? { app: true, email: true, sms: false, whatsapp: false }} />
 

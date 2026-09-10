@@ -391,6 +391,23 @@ create policy affiliate_write on "Affiliate" for all using (
   "userId" = app.uid() or (email = app.email() and app.email() is not null) or app.is_admin()
 );
 
+alter table "AffiliatePayoutRequest" enable row level security;
+alter table "AffiliatePayoutRequest" force row level security;
+create policy affiliatepayoutrequest_select on "AffiliatePayoutRequest" for select using (app.owns_affiliate("affiliateId") or app.is_admin());
+create policy affiliatepayoutrequest_insert on "AffiliatePayoutRequest" for insert with check (app.owns_affiliate("affiliateId") or app.is_admin());
+create policy affiliatepayoutrequest_modify on "AffiliatePayoutRequest" for update using (app.is_admin()) with check (app.is_admin());
+create policy affiliatepayoutrequest_delete on "AffiliatePayoutRequest" for delete using (app.is_admin());
+
+-- AffiliateConversion: written only by the approve-musician flow
+-- (service-role, since crediting a referral is a cross-user business
+-- event no individual caller's context can authorize) — same "no
+-- PUBLIC insert" shape as Purchase.
+alter table "AffiliateConversion" enable row level security;
+alter table "AffiliateConversion" force row level security;
+create policy affiliateconversion_select on "AffiliateConversion" for select using (app.owns_affiliate("affiliateId") or app.is_admin());
+create policy affiliateconversion_write on "AffiliateConversion" for insert with check (app.is_admin());
+create policy affiliateconversion_delete on "AffiliateConversion" for delete using (app.is_admin());
+
 -- ─────────────────────────────────────────────────────────────────────────
 -- Public lead-gen / pre-registration forms
 -- Public insert, admin-only read/update/delete (PII protection > form

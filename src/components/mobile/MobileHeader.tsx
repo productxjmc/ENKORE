@@ -30,7 +30,7 @@ export default function MobileHeader() {
         style={{ background: "var(--m-accent)" }}
       >
         <Repeat className="h-[13px] w-[13px]" />
-        {role === "musician" ? "Musician" : "Member"}
+        {role === "musician" ? "Musician" : role === "partner" ? "Partner" : "Member"}
       </button>
     </header>
   );

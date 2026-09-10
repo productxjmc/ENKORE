@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { clerkClient } from "@clerk/nextjs/server";
 import { getCurrentAppUser, withCurrentUser } from "@/lib/auth";
 import { slugify } from "@/lib/slugify";
+import { creditReferral } from "@/lib/partners/creditReferral";
 
 // Ported from the Base44 app's base44/functions/approveMusician/entry.ts.
 // Runs under the caller's own (admin) RLS context via withCurrentUser, not
@@ -43,6 +44,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
           where: { id: existingMusician.id },
           data: { referralCode: reg.referralCode },
         });
+        await creditReferral(tx, reg.referralCode, { id: existingMusician.id, musicianName: existingMusician.musicianName, email: existingMusician.email });
       }
       await tx.musicianPreRegistration.update({
         where: { id: registrationId },
@@ -57,7 +59,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
       };
     }
 
-    let baseSlug = slugify(reg.artistName) || "artist";
+    const baseSlug = slugify(reg.artistName) || "artist";
     let slug = baseSlug;
     for (let attempt = 1; attempt <= 10; attempt++) {
       const clash = await tx.musician.findUnique({ where: { storefrontUrl: slug } });
@@ -82,6 +84,10 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
       where: { id: registrationId },
       data: { status: "APPROVED", notes: notes ?? reg.notes },
     });
+
+    if (reg.referralCode) {
+      await creditReferral(tx, reg.referralCode, { id: musician.id, musicianName: musician.musicianName, email: musician.email });
+    }
 
     return {
       status: 200,

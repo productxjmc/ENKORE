@@ -99,7 +99,7 @@ export default function MusicianPreRegisterPage() {
   const [furthestStep, setFurthestStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [referralCode, setReferralCode] = useState("");
+  const [referralCode] = useState(() => (typeof window === "undefined" ? "" : new URLSearchParams(window.location.search).get("ref") ?? ""));
 
   const [form, setForm] = useState<FormState>({
     artist_name: "",
@@ -109,22 +109,22 @@ export default function MusicianPreRegisterPage() {
     email: "",
     phone_number: "",
     bio: "",
-    discount_code: "",
+    discount_code: referralCode,
   });
 
   const [errors, setErrors] = useState<FieldErrors>({});
 
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const ref = urlParams.get("ref");
-    if (ref) {
-      setReferralCode(ref);
-      setForm((prev) => ({ ...prev, discount_code: ref }));
-      // TODO(Stage 10 — Affiliates): the original app recorded a click via
-      // recordAffiliateClick here. Deferred until the affiliate program is
-      // ported — no endpoint exists yet to call.
+    if (referralCode) {
+      // Mobile Phase 7: /api/partners/click now exists. Fire-and-forget —
+      // a failed click ping should never block this form from loading.
+      fetch("/api/partners/click", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ referralCode }),
+      }).catch(() => {});
     }
-  }, []);
+  }, [referralCode]);
 
   const set = (field: keyof FormState, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));

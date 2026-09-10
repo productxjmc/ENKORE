@@ -988,6 +988,57 @@ model Affiliate {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  payoutRequests AffiliatePayoutRequest[]
+  conversions_log AffiliateConversion[]
+}
+
+// One row per credited referral — the actual data behind the "referral
+// activity feed" screen. Written once, at credit time (see
+// src/lib/partners/creditReferral.ts), from the same approve-musician
+// flow that increments Affiliate.conversions/pendingEarnings — not
+// reconstructed after the fact from Musician.referralCode, which has no
+// timestamp of when the credit actually happened.
+model AffiliateConversion {
+  id          String   @id @default(cuid())
+  affiliateId String
+  affiliate   Affiliate @relation(fields: [affiliateId], references: [id], onDelete: Cascade)
+
+  musicianId    String?
+  musicianName  String
+  musicianEmail String
+  commissionEarned Decimal @db.Decimal(10, 2)
+
+  createdAt DateTime @default(now())
+
+  @@index([affiliateId])
+}
+
+enum AffiliatePayoutRequestStatus {
+  PENDING
+  PAID
+  REJECTED
+}
+
+// Same shape as the musician-side Payout model: a self-service REQUEST,
+// not a self-service payment — an admin still processes it manually
+// (matches the dashboard copy's own "Payouts begin at program launch...
+// request a payout" framing, and the existing Payout/MusicianPayoutInfo
+// pattern this schema already uses elsewhere).
+model AffiliatePayoutRequest {
+  id          String    @id @default(cuid())
+  affiliateId String
+  affiliate   Affiliate @relation(fields: [affiliateId], references: [id], onDelete: Cascade)
+
+  amount Decimal @db.Decimal(12, 2)
+  method PayoutMethod?
+  status AffiliatePayoutRequestStatus @default(PENDING)
+  notes  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([affiliateId])
 }
 
 // ─────────────────────────────────────────────────────────────────────────

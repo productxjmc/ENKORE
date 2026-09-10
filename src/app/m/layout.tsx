@@ -42,16 +42,20 @@ export const viewport: Viewport = {
 // musician-scoped page in this app already uses.
 export default async function MobileLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentAppUser();
-  const hasMusicianProfile = user
-    ? await withCurrentUser((tx) =>
-        tx.musician.findFirst({ where: { OR: [{ userId: user.id }, { email: user.email }] }, select: { id: true } }),
-      ).then((m) => m != null)
-    : false;
+  const [hasMusicianProfile, hasAffiliateProfile] = user
+    ? await withCurrentUser(async (tx) => {
+        const [musician, affiliate] = await Promise.all([
+          tx.musician.findFirst({ where: { OR: [{ userId: user.id }, { email: user.email }] }, select: { id: true } }),
+          tx.affiliate.findFirst({ where: { OR: [{ userId: user.id }, { email: user.email }] }, select: { id: true } }),
+        ]);
+        return [musician != null, affiliate != null];
+      })
+    : [false, false];
 
   return (
     <div className={`${archivo.variable} enkore-m flex min-h-dvh flex-col`}>
       <ServiceWorkerRegister />
-      <MobileShellProvider isSignedIn={!!user} hasMusicianProfile={hasMusicianProfile}>
+      <MobileShellProvider isSignedIn={!!user} hasMusicianProfile={hasMusicianProfile} hasAffiliateProfile={hasAffiliateProfile}>
         <MobileHeader />
         <main className="flex-1">{children}</main>
         <MobileBottomNav />

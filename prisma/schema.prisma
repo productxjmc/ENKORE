@@ -494,6 +494,10 @@ model BookingEnquiry {
   eventTime     String?
   venue         String?
   budget        String?
+  // Whether a sponsor is covering the event's costs (vs. self-funded /
+  // community-paid) — a musician quoting a fee needs to know this before
+  // they can respond meaningfully.
+  sponsored      Boolean @default(false)
   organizerName  String
   organizerEmail String
   organizerPhone String?

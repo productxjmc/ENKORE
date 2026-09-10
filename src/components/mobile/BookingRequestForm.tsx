@@ -18,6 +18,7 @@ export default function BookingRequestForm({ musicianId, musicianName }: { music
   const [eventType, setEventType] = useState<(typeof EVENT_TYPES)[number]["value"]>("CHURCH_SERVICE");
   const [venue, setVenue] = useState("");
   const [budget, setBudget] = useState("");
+  const [sponsored, setSponsored] = useState<boolean | null>(null);
   const [organizerName, setOrganizerName] = useState("");
   const [organizerEmail, setOrganizerEmail] = useState("");
   const [organizerPhone, setOrganizerPhone] = useState("");
@@ -28,7 +29,7 @@ export default function BookingRequestForm({ musicianId, musicianName }: { music
   const fieldClass = "min-h-[48px] w-full border-2 bg-[var(--m-ground)] px-3 text-[14px] outline-none focus:border-[var(--m-accent)]";
 
   const submit = async () => {
-    if (!eventName || !eventDate || !organizerName || !organizerEmail) {
+    if (!eventName || !eventDate || sponsored === null || !organizerName || !organizerEmail) {
       setError("Fill in the required fields.");
       return;
     }
@@ -45,6 +46,7 @@ export default function BookingRequestForm({ musicianId, musicianName }: { music
           eventType,
           venue: venue || undefined,
           budget: budget || undefined,
+          sponsored,
           organizerName,
           organizerEmail,
           organizerPhone: organizerPhone || undefined,
@@ -80,6 +82,28 @@ export default function BookingRequestForm({ musicianId, musicianName }: { music
       </select>
       <input className={fieldClass} placeholder="Venue (optional)" value={venue} onChange={(e) => setVenue(e.target.value)} />
       <input className={fieldClass} placeholder="Budget (optional)" value={budget} onChange={(e) => setBudget(e.target.value)} />
+
+      <div>
+        <p className="mb-1.5 text-[11px] font-bold" style={{ color: "var(--m-ink)" }}>Is this event sponsored? *</p>
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => setSponsored(true)}
+            className="flex min-h-11 items-center justify-center border-2 text-[13px] font-bold"
+            style={{ borderColor: "var(--m-line)", background: sponsored === true ? "var(--m-accent)" : "var(--m-ground)", color: sponsored === true ? "#fff" : "var(--m-ink)" }}
+          >
+            Sponsored
+          </button>
+          <button
+            type="button"
+            onClick={() => setSponsored(false)}
+            className="flex min-h-11 items-center justify-center border-2 text-[13px] font-bold"
+            style={{ borderColor: "var(--m-line)", background: sponsored === false ? "var(--m-accent)" : "var(--m-ground)", color: sponsored === false ? "#fff" : "var(--m-ink)" }}
+          >
+            Not sponsored
+          </button>
+        </div>
+      </div>
 
       <div className="mt-2 border-t-2 pt-3" style={{ borderColor: "var(--m-line)" }}>
         <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.12em]" style={{ color: "var(--m-accent)" }}>Your details</p>

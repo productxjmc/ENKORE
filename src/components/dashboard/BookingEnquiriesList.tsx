@@ -12,6 +12,7 @@ export type PlainBookingEnquiry = {
   eventTime: string | null;
   venue: string | null;
   budget: string | null;
+  sponsored: boolean;
   organizerName: string;
   organizerEmail: string;
   organizerPhone: string | null;
@@ -69,7 +70,12 @@ export default function BookingEnquiriesList({ enquiries }: { enquiries: PlainBo
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <p className="font-semibold text-sm text-gray-900">{eq.eventName || "Untitled Event"}</p>
-                  {eq.eventType && <span className="inline-block text-[10px] text-gray-500 border border-gray-200 rounded-full px-2 py-0.5 mt-1">{eq.eventType}</span>}
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {eq.eventType && <span className="inline-block text-[10px] text-gray-500 border border-gray-200 rounded-full px-2 py-0.5">{eq.eventType}</span>}
+                    <span className={`inline-block text-[10px] font-medium rounded-full px-2 py-0.5 border ${eq.sponsored ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-gray-50 text-gray-500 border-gray-200"}`}>
+                      {eq.sponsored ? "Sponsored" : "Not sponsored"}
+                    </span>
+                  </div>
                 </div>
                 <span className={`text-[10px] font-semibold rounded-full border px-2 py-0.5 shrink-0 ${STATUS_COLORS[eq.status] || STATUS_COLORS.PENDING}`}>{eq.status.toLowerCase()}</span>
               </div>

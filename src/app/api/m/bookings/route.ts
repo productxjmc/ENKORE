@@ -11,6 +11,7 @@ const bookingSchema = z.object({
   eventType: z.enum(BOOKING_EVENT_TYPES).optional(),
   venue: z.string().trim().max(200).optional(),
   budget: z.string().trim().max(100).optional(),
+  sponsored: z.boolean().optional(),
   organizerName: z.string().trim().min(1).max(200),
   organizerEmail: z.email(),
   organizerPhone: z.string().trim().max(50).optional(),

@@ -1,29 +1,44 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { postOrQueue, flushQueue } from "@/lib/offlineQueue";
 
 type WallPost = { id: string; fanName: string; message: string; createdAt: string };
+
+const QUEUE_KEY = "wall-post";
 
 export default function WallSection({ musicianId, posts, signedIn }: { musicianId: string; posts: WallPost[]; signedIn: boolean }) {
   const [items, setItems] = useState(posts);
   const [message, setMessage] = useState("");
-  const [status, setStatus] = useState<"idle" | "submitting" | "error">("idle");
+  const [status, setStatus] = useState<"idle" | "submitting" | "error" | "queued">("idle");
   const [error, setError] = useState<string | null>(null);
+
+  // A post made with bad signal (exactly the "live event" scenario this
+  // app is built around) queues instead of failing outright — see
+  // src/lib/offlineQueue.ts. Flushed automatically once the browser
+  // comes back online.
+  useEffect(() => {
+    const onOnline = () => { void flushQueue(QUEUE_KEY); };
+    window.addEventListener("online", onOnline);
+    return () => window.removeEventListener("online", onOnline);
+  }, []);
 
   const submit = async () => {
     if (!message.trim()) return;
     setStatus("submitting");
     setError(null);
+    const text = message.trim();
     try {
-      const res = await fetch("/api/m/wall", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ musicianId, message: message.trim() }),
-      });
-      const body = await res.json();
-      if (!res.ok) throw new Error(body?.error || "Couldn't post. Try again.");
-      setItems((prev) => [{ id: body.post.id, fanName: body.post.fanName, message: body.post.message, createdAt: body.post.createdAt }, ...prev]);
+      const result = await postOrQueue(QUEUE_KEY, "/api/m/wall", { musicianId, message: text });
+      if (result.queued) {
+        setItems((prev) => [{ id: `pending-${Date.now()}`, fanName: "You", message: text, createdAt: new Date().toISOString() }, ...prev]);
+        setMessage("");
+        setStatus("queued");
+        return;
+      }
+      if (!result.ok) throw new Error("Couldn't post. Try again.");
+      setItems((prev) => [{ id: `pending-${Date.now()}`, fanName: "You", message: text, createdAt: new Date().toISOString() }, ...prev]);
       setMessage("");
       setStatus("idle");
     } catch (err) {
@@ -46,6 +61,7 @@ export default function WallSection({ musicianId, posts, signedIn }: { musicianI
             style={{ borderColor: "var(--m-line)" }}
           />
           {error && <p className="text-[12px] font-semibold" style={{ color: "var(--m-accent)" }}>{error}</p>}
+          {status === "queued" && <p className="text-[12px] font-semibold" style={{ color: "var(--m-accent)" }}>No signal — this will post once you&apos;re back online.</p>}
           <button
             type="button"
             onClick={submit}

@@ -1,6 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { postOrQueue, flushQueue } from "@/lib/offlineQueue";
+
+const QUEUE_KEY = "booking-request";
 
 const EVENT_TYPES = [
   { value: "WEDDING", label: "Wedding" },
@@ -23,10 +26,19 @@ export default function BookingRequestForm({ musicianId, musicianName }: { music
   const [organizerEmail, setOrganizerEmail] = useState("");
   const [organizerPhone, setOrganizerPhone] = useState("");
   const [message, setMessage] = useState("");
-  const [status, setStatus] = useState<"idle" | "submitting" | "done" | "error">("idle");
+  const [status, setStatus] = useState<"idle" | "submitting" | "done" | "queued" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
 
   const fieldClass = "min-h-[48px] w-full border-2 bg-[var(--m-ground)] px-3 text-[14px] outline-none focus:border-[var(--m-accent)]";
+
+  // Same offline-queue pattern as the Community Wall — a promoter filling
+  // this in right after a service with no signal shouldn't lose the
+  // request. See src/lib/offlineQueue.ts.
+  useEffect(() => {
+    const onOnline = () => { void flushQueue(QUEUE_KEY); };
+    window.addEventListener("online", onOnline);
+    return () => window.removeEventListener("online", onOnline);
+  }, []);
 
   const submit = async () => {
     if (!eventName || !eventDate || sponsored === null || !organizerName || !organizerEmail) {
@@ -36,25 +48,24 @@ export default function BookingRequestForm({ musicianId, musicianName }: { music
     setStatus("submitting");
     setError(null);
     try {
-      const res = await fetch("/api/m/bookings", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          musicianId,
-          eventName,
-          eventDate,
-          eventType,
-          venue: venue || undefined,
-          budget: budget || undefined,
-          sponsored,
-          organizerName,
-          organizerEmail,
-          organizerPhone: organizerPhone || undefined,
-          message: message || undefined,
-        }),
+      const result = await postOrQueue(QUEUE_KEY, "/api/m/bookings", {
+        musicianId,
+        eventName,
+        eventDate,
+        eventType,
+        venue: venue || undefined,
+        budget: budget || undefined,
+        sponsored,
+        organizerName,
+        organizerEmail,
+        organizerPhone: organizerPhone || undefined,
+        message: message || undefined,
       });
-      const body = await res.json();
-      if (!res.ok) throw new Error(body?.error || "Couldn't send your request. Try again.");
+      if (result.queued) {
+        setStatus("queued");
+        return;
+      }
+      if (!result.ok) throw new Error("Couldn't send your request. Try again.");
       setStatus("done");
     } catch (err) {
       setStatus("error");
@@ -62,11 +73,15 @@ export default function BookingRequestForm({ musicianId, musicianName }: { music
     }
   };
 
-  if (status === "done") {
+  if (status === "done" || status === "queued") {
     return (
       <div className="border-2 p-4 text-center" style={{ borderColor: "var(--m-line)" }}>
-        <p className="text-[15px] font-extrabold">Request sent</p>
-        <p className="mt-2 text-[13px]" style={{ color: "var(--m-text-muted)" }}>{musicianName} will reach out to {organizerEmail}.</p>
+        <p className="text-[15px] font-extrabold">{status === "queued" ? "Request saved" : "Request sent"}</p>
+        <p className="mt-2 text-[13px]" style={{ color: "var(--m-text-muted)" }}>
+          {status === "queued"
+            ? `No signal — this will send to ${musicianName} once you're back online.`
+            : `${musicianName} will reach out to ${organizerEmail}.`}
+        </p>
       </div>
     );
   }

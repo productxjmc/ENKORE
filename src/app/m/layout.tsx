@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Archivo } from "next/font/google";
 import { getCurrentAppUser, withCurrentUser } from "@/lib/auth";
 import ServiceWorkerRegister from "@/components/mobile/ServiceWorkerRegister";
+import InstallPrompt from "@/components/mobile/InstallPrompt";
 import MobileHeader from "@/components/mobile/MobileHeader";
 import MobileBottomNav from "@/components/mobile/MobileBottomNav";
 import MobileShellProvider from "@/components/mobile/MobileShellProvider";
@@ -57,6 +58,7 @@ export default async function MobileLayout({ children }: { children: React.React
       <ServiceWorkerRegister />
       <MobileShellProvider isSignedIn={!!user} hasMusicianProfile={hasMusicianProfile} hasAffiliateProfile={hasAffiliateProfile}>
         <MobileHeader />
+        <InstallPrompt />
         <main className="flex-1">{children}</main>
         <MobileBottomNav />
       </MobileShellProvider>

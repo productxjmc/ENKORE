@@ -20,17 +20,23 @@ const isProtectedRoute = createRouteMatcher([
   "/api/partners/activate",
   "/api/payments/payfast/initialize-subscription",
   "/api/payments/kyshi/initialize-subscription",
-  // Mobile app's fan-facing API routes (src/app/api/m) — every one of them
-  // requires a signed-in member, same defense-in-depth as /api/musician.
+  // Mobile app's fan-facing API routes (src/app/api/m) require a
+  // signed-in member — except the ones carved out below, which are
+  // genuinely public by RLS design (see prisma/rls.sql's
+  // bookingenquiry_insert: "public booking request form, no account
+  // required" — same intent as /api/musician-pre-register's carve-out
+  // from /api/musician above).
   "/api/m(/.*)?",
 ]);
+
+const isPublicApiException = createRouteMatcher(["/api/m/bookings"]);
 
 // Next.js 16 renamed Middleware to Proxy — this file must be named
 // `proxy.ts` (not `middleware.ts`) at the same level as `app/` for the
 // framework to pick it up at all; the exported name can stay `proxy` or
 // default. See node_modules/next/dist/docs/01-app/01-getting-started/16-proxy.md.
 export const proxy = clerkMiddleware(async (auth, req) => {
-  if (isProtectedRoute(req)) {
+  if (isProtectedRoute(req) && !isPublicApiException(req)) {
     await auth.protect();
   }
 

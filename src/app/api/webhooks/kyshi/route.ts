@@ -3,13 +3,25 @@ import { getCurrentAppUser } from "@/lib/auth";
 import { withServiceRole } from "@/lib/authContext";
 import { computeCommission } from "@/lib/payments/commission";
 import { completeSubscriptionInstallment } from "@/lib/payments/subscriptionCompletion";
+import { completeFanSubscription } from "@/lib/payments/fanSubscriptionCompletion";
 import { completeTicketPurchase } from "@/lib/payments/ticketCompletion";
 import { isWithinReplayWindow, verifyKyshiSignature } from "@/lib/payments/kyshiSignature";
 
 type KyshiEventData = {
   reference?: string;
   amount?: number;
-  meta?: { localCurrency?: string; localAmount?: number; order_id?: string; type?: string; payment_record_id?: string };
+  meta?: {
+    localCurrency?: string;
+    localAmount?: number;
+    order_id?: string;
+    type?: string;
+    payment_record_id?: string;
+    musicianId?: string;
+    fanEmail?: string;
+    fanName?: string;
+    amount?: number;
+    currency?: string;
+  };
 };
 
 // Ported from base44/functions/kyshiWebhook/entry.ts. Handles track
@@ -89,6 +101,26 @@ export async function POST(req: NextRequest) {
         const result = await completeSubscriptionInstallment(tx, reference);
         if (!result.ok) console.warn("[kyshi webhook] subscription completion failed:", result.reason);
         else console.log("[kyshi webhook] subscription installment paid, ref:", reference);
+      });
+      return NextResponse.json({ received: true });
+    }
+
+    if (data.meta?.type === "fan_subscription") {
+      if (!reference || !data.meta?.musicianId || !data.meta?.fanEmail) {
+        console.warn("[kyshi webhook] fan_subscription notification missing required fields:", data.meta);
+        return NextResponse.json({ received: true });
+      }
+      await withServiceRole(async (tx) => {
+        const result = await completeFanSubscription(tx, {
+          reference,
+          musicianId: data.meta!.musicianId!,
+          fanEmail: data.meta!.fanEmail!,
+          fanName: data.meta!.fanName,
+          amount: data.meta?.amount ?? confirmedAmount,
+          currency: data.meta?.currency ?? "NGN",
+        });
+        if (!result.ok) console.warn("[kyshi webhook] fan_subscription completion failed:", result.reason);
+        else console.log("[kyshi webhook] fan subscription created, ref:", reference);
       });
       return NextResponse.json({ received: true });
     }

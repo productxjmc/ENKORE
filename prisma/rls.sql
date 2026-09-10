@@ -151,8 +151,14 @@ create policy follow_delete on "Follow" for delete using (app.owns_fan("fanId") 
 alter table "FanWallPost" enable row level security;
 alter table "FanWallPost" force row level security;
 create policy fanwallpost_select on "FanWallPost" for select using ("isVisible" = true or app.is_admin());
--- No insert policy: the POST /fan-wall API route writes through a service
--- connection after validating the message server-side.
+-- The comment above ("writes through a service connection") describes
+-- intent, but RLS is default-deny per command — omitting a policy here
+-- doesn't grant service-role a pass, it denies EVERYONE including
+-- service-role (confirmed the hard way: withServiceRole itself got
+-- rejected). Same fix shape as the Purchase comment explains: an explicit
+-- app.is_admin() policy is what the "server-side, validated" write path
+-- (src/app/api/m/wall) actually needs to succeed at all.
+create policy fanwallpost_insert on "FanWallPost" for insert with check (app.is_admin());
 create policy fanwallpost_modify on "FanWallPost" for update using (app.is_admin()) with check (app.is_admin());
 create policy fanwallpost_delete on "FanWallPost" for delete using (app.is_admin());
 
@@ -310,6 +316,15 @@ create policy fansubscription_write on "FanSubscription" for insert with check (
 create policy fansubscription_modify on "FanSubscription" for update using (app.is_admin())
   with check (app.is_admin()); -- cancellation goes through an API route, not a direct row edit
 create policy fansubscription_delete on "FanSubscription" for delete using (app.is_admin());
+
+-- InterestSignal: a lead-gen signal, not money — same "no account
+-- required" shape as Follow/BookingEnquiry, not the Purchase-style
+-- app.is_admin()-gated insert.
+alter table "InterestSignal" enable row level security;
+alter table "InterestSignal" force row level security;
+create policy interestsignal_select on "InterestSignal" for select using (app.owns_musician("musicianId") or app.is_admin());
+create policy interestsignal_insert on "InterestSignal" for insert with check (true);
+create policy interestsignal_delete on "InterestSignal" for delete using (app.owns_musician("musicianId") or app.is_admin());
 
 alter table "MusicianSubscription" enable row level security;
 alter table "MusicianSubscription" force row level security;

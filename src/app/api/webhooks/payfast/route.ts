@@ -3,6 +3,7 @@ import { getCurrentAppUser } from "@/lib/auth";
 import { withServiceRole } from "@/lib/authContext";
 import { computeCommission } from "@/lib/payments/commission";
 import { completeSubscriptionInstallment } from "@/lib/payments/subscriptionCompletion";
+import { completeFanSubscription } from "@/lib/payments/fanSubscriptionCompletion";
 import { completeTicketPurchase } from "@/lib/payments/ticketCompletion";
 import { confirmWithPayfast, getPassphrase, parseOrderedForm, toRecord, verifyItnSignature } from "@/lib/payments/payfastSignature";
 
@@ -14,6 +15,8 @@ type PayfastCustomData = {
   fan_email?: string;
   type?: string;
   paymentReference?: string;
+  amount?: number;
+  currency?: string;
 };
 
 // Ported from base44/functions/payfastNotify/entry.ts. Scoped to the
@@ -92,6 +95,28 @@ export async function POST(req: NextRequest) {
       await withServiceRole((tx) =>
         tx.subscriptionPayment.updateMany({ where: { paymentReference: customData.paymentReference, status: "PENDING" }, data: { status: "FAILED" } }),
       );
+    }
+    return new NextResponse("OK", { status: 200 });
+  }
+
+  if (customData.type === "fan_subscription") {
+    if (!customData.paymentReference || !customData.musician_id || !customData.fan_email) {
+      console.warn("[payfast webhook] fan_subscription notification missing required fields:", customData);
+      return new NextResponse("OK", { status: 200 });
+    }
+    if (paymentStatus === "COMPLETE") {
+      await withServiceRole(async (tx) => {
+        const result = await completeFanSubscription(tx, {
+          reference: customData.paymentReference!,
+          musicianId: customData.musician_id!,
+          fanEmail: customData.fan_email!,
+          fanName: customData.fan_name,
+          amount: customData.amount ?? amount,
+          currency: customData.currency ?? "ZAR",
+        });
+        if (!result.ok) console.warn("[payfast webhook] fan_subscription completion failed:", result.reason);
+        else console.log("[payfast webhook] fan subscription created, ref:", customData.paymentReference);
+      });
     }
     return new NextResponse("OK", { status: 200 });
   }

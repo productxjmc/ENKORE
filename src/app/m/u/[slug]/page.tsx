@@ -1,9 +1,13 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { MapPin } from "lucide-react";
+import { MapPin, CalendarPlus } from "lucide-react";
 import { withCurrentUser } from "@/lib/auth";
+import { getCurrentFan } from "@/lib/fan";
 import { toPlain } from "@/lib/serialize";
 import { formatFromZar } from "@/lib/pricingConfig";
+import SupportSection from "@/components/mobile/SupportSection";
+import NotifyMeButton from "@/components/mobile/NotifyMeButton";
+import WallSection from "@/components/mobile/WallSection";
 
 // Same public-read data the web storefront (src/app/[slug]/page.tsx)
 // already queries — Musician/Track/Merchandise/Event are all public-select
@@ -19,12 +23,14 @@ export default async function MobileStorefrontPage({ params }: { params: Promise
   );
   if (!musician) notFound();
 
-  const [tracks, events] = await withCurrentUser((tx) =>
+  const [tracks, events, wallPosts] = await withCurrentUser((tx) =>
     Promise.all([
       tx.track.findMany({ where: { musicianId: musician.id }, orderBy: { createdAt: "desc" } }),
       tx.event.findMany({ where: { musicianId: musician.id, status: { in: ["UPCOMING", "SOLD_OUT"] } }, orderBy: { eventDate: "asc" } }),
+      tx.fanWallPost.findMany({ where: { musicianId: musician.id, isVisible: true }, orderBy: { createdAt: "desc" }, take: 20 }),
     ]),
   );
+  const currentFan = await getCurrentFan();
 
   return (
     <div>
@@ -47,10 +53,26 @@ export default async function MobileStorefrontPage({ params }: { params: Promise
       </div>
 
       {musician.bio && (
-        <p className="border-b p-4 text-[13px] leading-[1.5]" style={{ borderColor: "var(--m-hairline)", color: "var(--m-text-muted)" }}>
+        <p className="p-4 pb-0 text-[13px] leading-[1.5]" style={{ color: "var(--m-text-muted)" }}>
           {musician.bio}
         </p>
       )}
+
+      <div className="flex flex-wrap gap-2 border-b p-4" style={{ borderColor: "var(--m-hairline)" }}>
+        <NotifyMeButton musicianId={musician.id} signedIn={!!currentFan} />
+        <Link href={`/m/u/${musician.storefrontUrl ?? musician.id}/book`} className="flex min-h-11 items-center gap-2 border-2 px-3 text-[12px] font-bold" style={{ borderColor: "var(--m-line)" }}>
+          <CalendarPlus className="h-4 w-4" style={{ color: "var(--m-accent)" }} />
+          Book {musician.musicianName}
+        </Link>
+      </div>
+
+      <div className="border-b-2 p-4" style={{ borderColor: "var(--m-line)" }}>
+        <SupportSection
+          musician={{ id: musician.id, musicianName: musician.musicianName, country: musician.country }}
+          fanEmail={currentFan?.email ?? ""}
+          fanName={currentFan?.fullName ?? ""}
+        />
+      </div>
 
       {events.length > 0 && (
         <div className="border-b-2 p-4" style={{ borderColor: "var(--m-line)" }}>
@@ -90,6 +112,17 @@ export default async function MobileStorefrontPage({ params }: { params: Promise
             </Link>
           ))
         )}
+      </div>
+
+      <div className="border-t-2 p-4" style={{ borderColor: "var(--m-line)" }}>
+        <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.12em]" style={{ color: "var(--m-accent)" }}>
+          Community Wall
+        </p>
+        <WallSection
+          musicianId={musician.id}
+          signedIn={!!currentFan}
+          posts={toPlain<{ id: string; fanName: string; message: string; createdAt: string }[]>(wallPosts)}
+        />
       </div>
     </div>
   );

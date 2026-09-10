@@ -162,6 +162,7 @@ model Musician {
   follows           Follow[]
   attendances       Attendance[]
   fanSubscriptions  FanSubscription[]
+  interestSignals   InterestSignal[]
 
   @@index([storefrontUrl])
 }
@@ -285,6 +286,7 @@ model Fan {
   follows           Follow[]
   attendances       Attendance[]
   fanSubscriptions  FanSubscription[]
+  interestSignals   InterestSignal[]
 }
 
 enum FollowSource {
@@ -742,6 +744,33 @@ model FanSubscription {
 enum SubFrequency {
   WEEKLY
   MONTHLY
+}
+
+enum InterestSignalKind {
+  NOTIFY
+}
+
+// Lightweight, no-money-changing-hands interest signal — "Notify me about
+// new music/shows from this musician." Scoped to musicianId only for now;
+// the plan's second rung ("Count me in" against a specific tour city) is
+// deferred until TourCampaign has a real creation path (currently
+// schema-only, no musician-side UI anywhere), so InterestSignalKind has
+// just the one value rather than an unreachable COUNTED_IN.
+model InterestSignal {
+  id         String   @id @default(cuid())
+  musicianId String
+  musician   Musician @relation(fields: [musicianId], references: [id], onDelete: Cascade)
+  fanId      String?
+  fan        Fan?     @relation(fields: [fanId], references: [id])
+
+  fanEmail String
+  fanName  String?
+  kind     InterestSignalKind @default(NOTIFY)
+
+  createdAt DateTime @default(now())
+
+  @@unique([musicianId, fanEmail, kind])
+  @@index([musicianId])
 }
 
 model MusicianSubscription {

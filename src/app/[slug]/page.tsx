@@ -1,5 +1,4 @@
-import Link from "next/link";
-import { Music } from "lucide-react";
+import { notFound } from "next/navigation";
 import { withCurrentUser } from "@/lib/auth";
 import { toPlain } from "@/lib/serialize";
 import { Storefront, type PlainMusician, type PlainTrack, type PlainMerchandise, type PlainEvent } from "./Storefront";
@@ -24,19 +23,7 @@ export default async function MusicianStorefrontPage({
 
   const musician = await withCurrentUser((tx) => tx.musician.findUnique({ where: { storefrontUrl: slug } }));
 
-  if (!musician) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <Music className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <p className="text-gray-600 text-lg mb-4">Musician not found</p>
-          <Link href="/" className="text-orange-600 hover:underline">
-            Back to Home
-          </Link>
-        </div>
-      </div>
-    );
-  }
+  if (!musician) notFound();
 
   const [tracks, merchandise, events] = await Promise.all([
     withCurrentUser((tx) => tx.track.findMany({ where: { musicianId: musician.id }, orderBy: { createdAt: "desc" } })),

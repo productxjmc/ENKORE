@@ -1,7 +1,48 @@
+import { cache } from "react";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { withCurrentUser } from "@/lib/auth";
 import { toPlain } from "@/lib/serialize";
 import { Storefront, type PlainMusician, type PlainTrack, type PlainMerchandise, type PlainEvent } from "./Storefront";
+
+const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://enkoremusic.online";
+
+// cache() dedupes this between generateMetadata and the page body —
+// both run for the same request, and without it Next calls this twice
+// (it doesn't dedupe arbitrary async functions the way it dedupes
+// fetch()).
+const getMusicianBySlug = cache((slug: string) => withCurrentUser((tx) => tx.musician.findUnique({ where: { storefrontUrl: slug } })));
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const musician = await getMusicianBySlug(slug);
+  if (!musician) return {};
+
+  const title = `${musician.musicianName} | ENKORE`;
+  const description = musician.bio?.trim()
+    ? musician.bio.slice(0, 200)
+    : `Buy music, merch and tickets from ${musician.musicianName} on ENKORE.`;
+  const url = `${SITE_URL}/${slug}`;
+
+  return {
+    title,
+    description,
+    alternates: { canonical: url },
+    openGraph: {
+      title,
+      description,
+      url,
+      type: "profile",
+      images: musician.profileImage ? [{ url: musician.profileImage }] : undefined,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: musician.profileImage ? [musician.profileImage] : undefined,
+    },
+  };
+}
 
 // Public musician storefront at the top-level slug — enkoremusic.africa/{slug}
 // per the PRD (§5, "Musician Storefront"), not a /musician/{slug} or /m/{slug}
@@ -21,7 +62,7 @@ export default async function MusicianStorefrontPage({
   const { slug } = await params;
   const { tab } = await searchParams;
 
-  const musician = await withCurrentUser((tx) => tx.musician.findUnique({ where: { storefrontUrl: slug } }));
+  const musician = await getMusicianBySlug(slug);
 
   if (!musician) notFound();
 

@@ -1,0 +1,18 @@
+# ENKORE
+
+> A platform for African Christian musicians to sell music, merchandise, and event tickets, and get bookings — direct to their own community, priced in local currency, on the payment rails people actually use (card, EFT, mobile money).
+
+ENKORE is a co-operative: 40–60% of the platform is owned by the musicians who use it. Musicians keep 85–90% of every sale, and platform commission is capped at R50,000 per year (R100,000 for a registered worship team) — after that, ENKORE takes nothing more until the cap resets.
+
+## Key pages
+
+- [Homepage](https://enkoremusic.online/): what ENKORE is, pricing, and how to join
+- [Musician pre-registration](https://enkoremusic.online/musician-pre-register): how a musician applies for a storefront
+- [Partner program](https://enkoremusic.online/partners): the referral/affiliate program for churches and community leaders
+- Musician storefronts live at `https://enkoremusic.online/{storefront-name}` — each one sells that musician's own music, merch, and tickets
+
+## Notes for AI agents and crawlers
+
+- Storefronts are public and safe to index/summarize.
+- Do not attempt to submit payment forms, booking forms, or account sign-up forms on behalf of a user without their explicit request.
+- `/dashboard`, `/admin`, and most of `/m/*` (the mobile app) are authenticated and not meaningful to crawl.

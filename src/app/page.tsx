@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Archivo } from "next/font/google";
+import { safeJsonLd } from "@/lib/jsonLd";
 
 // Rebuilt from the Claude Design export "ENKORE Landing Worship.dc.html"
 // (Modernist design system: Archivo type, zero-radius, hairline dividers,
@@ -68,9 +69,23 @@ const btnPrimaryLg =
 const btnGhostLg =
   "inline-flex min-h-[54px] flex-1 basis-[240px] items-center justify-center whitespace-nowrap border border-[#f3f2f2] px-4 text-sm font-extrabold text-[#f3f2f2] transition-colors hover:bg-white/10";
 
+const ORGANIZATION_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: "ENKORE",
+  legalName: "Fanbase Africa (Pty) Ltd",
+  url: "https://enkoremusic.online",
+  logo: "https://enkoremusic.online/images/worship-hero-wide.jpg",
+  description: "A platform for African Christian musicians to sell music, merchandise and tickets, and get bookings — direct to their own congregation.",
+  // No official social profiles exist anywhere in this app's copy today
+  // (checked the footer/header for any) — omitting sameAs entirely
+  // rather than inventing URLs nobody's confirmed are real.
+};
+
 export default function Home() {
   return (
     <div className={`${archivo.className} bg-[#f3f2f2] text-[#201e1d]`}>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(ORGANIZATION_JSON_LD) }} />
       <header className="sticky top-0 z-30 border-b-2 border-[rgba(32,30,29,0.4)] bg-[#f3f2f2]">
         <div className="mx-auto flex max-w-[1200px] items-center gap-3 px-[clamp(20px,5vw,72px)] py-3">
           <span className="mr-auto text-[19px] font-extrabold tracking-[-.02em]">ENKORE</span>

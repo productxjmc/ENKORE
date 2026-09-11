@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { withCurrentUser } from "@/lib/auth";
 import { toPlain } from "@/lib/serialize";
+import { safeJsonLd } from "@/lib/jsonLd";
 import { Storefront, type PlainMusician, type PlainTrack, type PlainMerchandise, type PlainEvent } from "./Storefront";
 
 const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://enkoremusic.online";
@@ -79,13 +80,34 @@ export default async function MusicianStorefrontPage({
     withCurrentUser((tx) => tx.event.findMany({ where: { musicianId: musician.id, status: { in: ["UPCOMING", "SOLD_OUT"] } }, orderBy: { eventDate: "asc" } })),
   ]);
 
+  // MusicGroup is schema.org's type for any musical performer (solo
+  // artists included, despite the name) — sameAs pulls every social/
+  // streaming link the musician has actually filled in, nothing invented.
+  const socialLinks = (musician.socialLinks as Record<string, string> | null) ?? {};
+  const streamingLinks = (musician.streamingLinks as Record<string, string> | null) ?? {};
+  const sameAs = Object.values({ ...socialLinks, ...streamingLinks }).filter((v): v is string => typeof v === "string" && v.trim() !== "");
+
+  const musicianJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "MusicGroup",
+    name: musician.musicianName,
+    url: `${SITE_URL}/${slug}`,
+    ...(musician.profileImage ? { image: musician.profileImage } : {}),
+    ...(musician.bio ? { description: musician.bio } : {}),
+    ...(musician.location ? { location: musician.location } : {}),
+    ...(sameAs.length > 0 ? { sameAs } : {}),
+  };
+
   return (
-    <Storefront
-      musician={toPlain<PlainMusician>(musician)}
-      tracks={toPlain<PlainTrack[]>(tracks)}
-      merchandise={toPlain<PlainMerchandise[]>(merchandise)}
-      events={toPlain<PlainEvent[]>(events)}
-      initialTab={tab}
-    />
+    <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(musicianJsonLd) }} />
+      <Storefront
+        musician={toPlain<PlainMusician>(musician)}
+        tracks={toPlain<PlainTrack[]>(tracks)}
+        merchandise={toPlain<PlainMerchandise[]>(merchandise)}
+        events={toPlain<PlainEvent[]>(events)}
+        initialTab={tab}
+      />
+    </>
   );
 }

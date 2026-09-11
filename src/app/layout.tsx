@@ -24,9 +24,35 @@ const roboto = Roboto({
   weight: ["300", "400", "500", "700", "900"],
 });
 
+const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://enkoremusic.online";
+const SITE_TITLE = "ENKORE — Built for Christian Musicians";
+const SITE_DESCRIPTION = "Sell your music, merch, tickets and bookings straight to your own congregation — in their currency, on the payment rails they actually use.";
+
+// Root-level defaults every page inherits unless it sets its own (most
+// pages still don't — see the [slug] storefront's own generateMetadata
+// for the one place that does today). Without this, a page with no
+// metadata of its own had literally nothing for Open Graph/Twitter to
+// show when shared — confirmed there were zero openGraph/twitter
+// fields anywhere in the app before this.
 export const metadata: Metadata = {
-  title: "ENKORE — Built for Christian Musicians",
-  description: "Sell music, merchandise, tickets and get bookings — all in one place. Join the waitlist.",
+  metadataBase: new URL(SITE_URL),
+  title: { default: SITE_TITLE, template: "%s | ENKORE" },
+  description: SITE_DESCRIPTION,
+  openGraph: {
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+    url: SITE_URL,
+    siteName: "ENKORE",
+    images: [{ url: "/images/worship-hero-wide.jpg" }],
+    locale: "en_ZA",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+    images: ["/images/worship-hero-wide.jpg"],
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

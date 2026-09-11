@@ -18,18 +18,25 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const musician = await getMusicianBySlug(slug);
   if (!musician) return {};
 
-  const title = `${musician.musicianName} | ENKORE`;
+  // The root layout's title.template ("%s | ENKORE") applies to
+  // whatever string this returns for `title` — confirmed live that
+  // returning an already-suffixed "Name | ENKORE" here produces
+  // "Name | ENKORE | ENKORE" once the template wraps it. openGraph.title
+  // and twitter.title aren't subject to that template at all, so those
+  // need the full string explicitly.
+  const pageTitle = musician.musicianName;
+  const fullTitle = `${musician.musicianName} | ENKORE`;
   const description = musician.bio?.trim()
     ? musician.bio.slice(0, 200)
     : `Buy music, merch and tickets from ${musician.musicianName} on ENKORE.`;
   const url = `${SITE_URL}/${slug}`;
 
   return {
-    title,
+    title: pageTitle,
     description,
     alternates: { canonical: url },
     openGraph: {
-      title,
+      title: fullTitle,
       description,
       url,
       type: "profile",
@@ -37,7 +44,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     },
     twitter: {
       card: "summary_large_image",
-      title,
+      title: fullTitle,
       description,
       images: musician.profileImage ? [musician.profileImage] : undefined,
     },
